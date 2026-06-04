@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Clock, CheckCircle2, XCircle, Calendar, CreditCard, Star, MessageSquare, Send, X } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Calendar, CreditCard, Star, MessageSquare, Send, X, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { collection, query, where, doc, updateDoc, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
@@ -282,24 +282,30 @@ export default function MyBookings() {
                             {status.label}
                           </div>
                         </div>
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1.5">
                           {booking.location && (
                             <p className="text-[10px] text-body/50 font-bold uppercase tracking-widest">{booking.location}</p>
                           )}
                           {booking.locationName && (
                             <p className="text-[10px] text-primary-dark font-black uppercase tracking-widest">{booking.locationName}</p>
                           )}
-                          {booking.latitude && booking.longitude && (
+                          <div className="pt-1.5">
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                window.open(`https://www.google.com/maps/search/?api=1&query=${booking.latitude},${booking.longitude}`, '_blank');
+                                if (booking.latitude && booking.longitude) {
+                                  window.open(`https://www.google.com/maps?q=${booking.latitude},${booking.longitude}`, '_blank');
+                                } else {
+                                  toast.error("Location not available");
+                                }
                               }}
-                              className="w-fit text-[9px] font-black text-primary-dark uppercase tracking-widest hover:underline mt-1"
+                              title="Open Location in Google Maps"
+                              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 w-fit active:scale-95 shadow-md shadow-emerald-600/10"
                             >
-                              View on Map
+                              <MapPin size={12} strokeWidth={2.5} />
+                              View Location
                             </button>
-                          )}
+                          </div>
                         </div>
                         <p className="text-[9px] font-black tracking-[0.3em] text-body/20 uppercase">Order ID: {booking.id.toUpperCase()}</p>
                       </div>
