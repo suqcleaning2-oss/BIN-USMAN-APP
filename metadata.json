@@ -1,0 +1,6 @@
+{
+  "name": "BIN Usman - Rental Booking",
+  "description": "An exclusive rental booking sanctuary featuring a Soft Luxury Neutral aesthetic, city-curated discovery, and meticulous reservation management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

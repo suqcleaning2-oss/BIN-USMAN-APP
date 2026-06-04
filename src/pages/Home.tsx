@@ -1,0 +1,170 @@
+import React, { useState, useEffect } from 'react';
+import ListingCard from '../components/ListingCard';
+import { Search, Loader2, MapPin, Building2 } from 'lucide-react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { RefreshButton } from '../components/RefreshButton';
+
+interface Listing {
+  id: string;
+  title: string;
+  price: number;
+  location: string;
+  locationName?: string;
+  city: string;
+  images: string[];
+}
+
+const PAKISTAN_CITIES = [
+  'All', 'Islamabad', 'Karachi', 'Lahore', 'Rawalpindi', 'Peshawar', 'Quetta', 'Multan', 'Faisalabad', 'Sialkot', 'Murree'
+];
+
+export default function Home() {
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCity, setSelectedCity] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchListings = async () => {
+    setLoading(true);
+    try {
+      const listingsPath = 'listings';
+      const listingsRef = collection(db, listingsPath);
+      let q = query(listingsRef);
+      
+      if (selectedCity !== 'All') {
+        q = query(listingsRef, where('city', '==', selectedCity));
+      }
+
+      let snapshot;
+      try {
+        snapshot = await getDocs(q);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.LIST, listingsPath);
+      }
+      
+      const listingsData: Listing[] = [];
+      snapshot!.forEach((doc) => {
+        listingsData.push({ id: doc.id, ...doc.data() } as Listing);
+      });
+      setListings(listingsData);
+    } catch (error) {
+      console.error("Error fetching listings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchListings();
+  }, [selectedCity]);
+
+  const handleRefresh = async () => {
+    await fetchListings();
+  };
+
+  const filteredListings = listings.filter(l => 
+    (l.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (l.location?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (l.city?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-8 relative">
+      <div className="absolute top-0 right-0 z-50">
+        <RefreshButton onRefresh={handleRefresh} />
+      </div>
+
+      {/* Hero Section */}
+      <div className="relative rounded-[2.5rem] overflow-hidden h-[400px] flex flex-col justify-center items-center text-center p-6 bg-[#F3F0E9] border border-secondary/50 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+          <div className="h-full w-full" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '60px 60px' }} />
+        </div>
+        
+        <div className="space-y-6 relative z-10 max-w-2xl">
+          <h1 className="text-5xl md:text-7xl font-semibold tracking-tighter leading-tight text-heading uppercase">
+            Find a <span className="text-primary-dark italic font-normal">Place to Stay</span>
+          </h1>
+          <p className="text-body/80 max-w-md mx-auto font-medium text-sm tracking-wide leading-relaxed">
+            Find the best apartments for rent in Pakistan's top locations.
+          </p>
+          
+          <div className="w-full max-w-md relative group mx-auto pt-4">
+            <Search className="absolute left-5 top-[60%] -translate-y-1/2 text-body/30 group-focus-within:text-primary-dark transition-colors" size={18} />
+            <input 
+              type="text"
+              placeholder="Search by city or area..."
+              className="w-full bg-white border border-secondary rounded-2xl py-4 pl-14 pr-4 focus:outline-none focus:border-primary-dark focus:ring-4 focus:ring-primary/10 transition-all text-heading placeholder:text-body/20 font-medium text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* City Filter */}
+      <div className="space-y-6 pt-8">
+        <div className="flex items-center justify-between border-b border-secondary pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-primary-dark rounded-full" />
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-heading">Top Cities</h2>
+          </div>
+          <span className="text-[10px] font-medium uppercase tracking-widest text-body/40">{listings.length} Places Available</span>
+        </div>
+        
+        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 snap-x">
+          {PAKISTAN_CITIES.map((city) => (
+            <button
+              key={city}
+              onClick={() => setSelectedCity(city)}
+              className={`
+                flex items-center gap-2 px-8 py-3.5 rounded-full whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all snap-start
+                ${selectedCity === city 
+                  ? 'bg-primary-dark text-white shadow-xl shadow-primary-dark/10 ring-4 ring-primary-dark/5' 
+                  : 'bg-white text-body/40 border border-secondary hover:border-primary-dark/30 hover:text-heading'}
+              `}
+            >
+              {city}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Featured Listings */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black tracking-tight uppercase text-heading">Find an <span className="text-primary italic">Apartment</span></h2>
+          <span className="text-body font-bold text-xs uppercase tracking-widest">{filteredListings.length} results found</span>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 glass-card border-dashed gap-4 bg-white/40">
+            <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            <p className="text-body font-black tracking-widest text-xs uppercase animate-pulse">Loading...</p>
+          </div>
+        ) : filteredListings.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-700">
+            {filteredListings.map(listing => (
+              <ListingCard key={listing.id} {...listing} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20 glass-card border-dashed bg-white/40">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary">
+              <Search size={32} />
+            </div>
+            <h3 className="text-xl font-black uppercase tracking-tight text-heading">No apartments available</h3>
+            <p className="text-body font-medium text-sm max-w-xs mx-auto">We found nothing in {selectedCity} for this search.</p>
+            <button 
+              onClick={() => { setSelectedCity('All'); setSearchTerm(''); }}
+              className="mt-6 text-primary font-black uppercase text-[10px] tracking-widest hover:underline"
+            >
+              See All
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

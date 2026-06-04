@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information including roles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "blocked": { "type": "boolean" }
+      },
+      "required": ["id", "fullName", "name", "email", "phone", "role", "blocked"]
+    },
+    "Listing": {
+      "title": "Property Listing",
+      "description": "Rental property details",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "location": { "type": "string" },
+        "city": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["title", "description", "price", "location", "images"]
+    },
+    "Booking": {
+      "title": "Booking Request",
+      "description": "User booking and payment verification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "listingId": { "type": "string" },
+        "paymentScreenshot": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "confirmed", "completed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "totalPrice": { "type": "number" },
+        "checkIn": { "type": "string" },
+        "checkOut": { "type": "string" },
+        "nights": { "type": "number" }
+      },
+      "required": ["userId", "listingId", "status", "createdAt"]
+    },
+    "Review": {
+      "title": "Guest Review",
+      "description": "User feedback and rating for a listing",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "listingId": { "type": "string" },
+        "listingTitle": { "type": "string" },
+        "rating": { "type": "number" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "listingId", "rating", "text", "createdAt"]
+    },
+    "Wishlist": {
+      "title": "User Wishlist",
+      "description": "Saved listings for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "listingId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "listingId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Public and private user profiles"
+    },
+    "/listings/{listingId}": {
+      "schema": "Listing",
+      "description": "Available rental properties"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Property booking records and payment status"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Guest reviews for properties"
+    },
+    "/wishlists/{wishlistId}": {
+      "schema": "Wishlist",
+      "description": "User's favorite listings"
+    }
+  }
+}

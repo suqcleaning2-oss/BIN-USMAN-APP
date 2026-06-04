@@ -1,0 +1,124 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Connection Test Document
+    // Common Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.get('email', '') == 'suqcleaning2@gmail.com' ||
+        request.auth.token.get('email', '') == 'mqaisar11550@gmail.com' ||
+        request.auth.token.email == 'suqcleaning2@gmail.com' ||
+        request.auth.token.email == 'mqaisar11550@gmail.com' ||
+        request.auth.uid == 'DAKZRZKv9IVsBMOzrDBbKZoF6F13' ||
+        request.auth.uid == 'SEGnVnP1WRd4rQLeL8hjoBQXh4a2'
+      );
+    }
+    
+    function isDbAdmin() {
+      return isAdmin() || (
+        isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    match /test/connection {
+      allow get, list, read: if true;
+    }
+
+    // Entity Validations
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'fullName', 'name', 'email', 'phone', 'role', 'blocked']) 
+          && data.keys().size() >= 7 && data.keys().size() <= 15
+          && data.id == request.auth.uid
+          && (isDbAdmin() || data.role == 'user')
+          && (data.blocked is bool && (data.blocked == false || isDbAdmin()))
+          && (data.fullName is string && data.fullName.size() > 0)
+          && (data.name is string && data.name.size() > 0)
+          && (data.email is string && data.email.size() > 0)
+          && (data.phone is string && (data.phone.size() >= 10 || data.phone == ''));
+    }
+
+    function isValidListing(data) {
+      return data.keys().hasAll(['title', 'description', 'price', 'location', 'city', 'images'])
+          && data.keys().size() >= 6 && data.keys().size() <= 40;
+    }
+
+    function isValidReview(data) {
+      return data.userId == request.auth.uid
+          && data.listingId is string
+          && data.rating is number && data.rating >= 1 && data.rating <= 5;
+    }
+
+    function isValidBooking(data) {
+      return data.userId == request.auth.uid;
+    }
+
+    function isValidWishlist(data) {
+      return data.userId == request.auth.uid && data.listingId is string;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isDbAdmin();
+      allow write: if isSignedIn() && (isOwner(userId) || isDbAdmin()) && isValidUser(request.resource.data);
+    }
+
+    // Listings Collection
+    match /listings/{listingId} {
+      allow read, get, list: if true;
+      allow create: if isDbAdmin() && isValidListing(request.resource.data);
+      allow update: if isDbAdmin() || (
+        isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['rating', 'reviewCount'])
+      );
+      allow delete: if isDbAdmin();
+    }
+
+    // Bookings Collection
+    match /bookings/{bookingId} {
+      // Allow list for admin, owner, or any user querying for a specific listingId to check availability
+      allow list: if isDbAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid) || (resource.data.listingId != null);
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isDbAdmin());
+      allow create: if isSignedIn() && isValidBooking(request.resource.data);
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isDbAdmin());
+      allow delete: if isDbAdmin();
+    }
+
+    // Reviews Collection
+    match /reviews/{reviewId} {
+      allow read, get, list: if true;
+      allow create: if isSignedIn() && isValidReview(request.resource.data);
+      allow update, delete: if isDbAdmin();
+    }
+
+    // Wishlists Collection
+    match /wishlists/{wishlistId} {
+      allow list: if isSignedIn() && (isDbAdmin() || resource.data.userId == request.auth.uid);
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isDbAdmin());
+      allow create: if isSignedIn() && isValidWishlist(request.resource.data);
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isDbAdmin());
+    }
+  }
+}
