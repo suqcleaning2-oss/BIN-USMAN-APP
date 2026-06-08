@@ -30,6 +30,27 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Register a booking to allow sandbox/dev status simulation
+  app.post("/api/bookings/initiate", (req, res) => {
+    const { bookingId, userId, listingId, listingTitle, amount, checkIn, checkOut, nights } = req.body;
+    
+    bookings[bookingId] = {
+      id: bookingId,
+      userId,
+      listingId: listingId || "unknown",
+      listingTitle: listingTitle || "Stay booking",
+      amount: Number(amount) || 0,
+      checkIn: checkIn || new Date().toISOString(),
+      checkOut: checkOut || new Date().toISOString(),
+      nights: Number(nights) || 1,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    console.log(`Booking ${bookingId} initiated on server memory.`);
+    res.json({ success: true });
+  });
+
   // Check booking status
   app.get("/api/bookings/status/:id", (req, res) => {
     const bookingId = req.params.id;

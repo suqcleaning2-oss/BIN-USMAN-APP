@@ -76,6 +76,12 @@ export default function BookingConfirmation() {
   const handlePayRedirect = async () => {
     if (!user || !listing) return;
 
+    const price = Number(bookingData?.totalPrice || 0);
+    if (isNaN(price) || price <= 0) {
+      toast.error('Invalid Amount! Payment amount must be greater than 0. Please try again.');
+      return;
+    }
+
     setIsRedirecting(true);
     
     try {
@@ -143,10 +149,54 @@ export default function BookingConfirmation() {
 
       console.log("Booking document created in Firestore with status pending:", bookingRef.id);
 
-      toast.success("Booking Created! Redirecting to secure payment page..."); 
-      setTimeout(() => {
-        window.location.href = "https://cashmaal.com/payment-link";
-      }, 1000);
+      // Register with backend memory to allow checkout simulation flow
+      try {
+        await fetch('/api/bookings/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: bookingRef.id,
+            userId: user.uid,
+            listingId: listing.id,
+            listingTitle: listing.title,
+            amount: bookingData.totalPrice,
+            checkIn: bookingData.checkIn,
+            checkOut: bookingData.checkOut,
+            nights: bookingData.nights
+          })
+        });
+      } catch (err) {
+        console.error("Backend track registration warning:", err);
+      }
+
+      toast.success("Booking Created! Redirecting to Cashmaal Payment Gateway..."); 
+      
+      // Submit form dynamically to Cashmaal as requested!
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://www.cashmaal.com/Pay/';
+
+      const fields: Record<string, string> = {
+        web_id: '11354',
+        amount: String(bookingData.totalPrice),
+        currency: 'PKR',
+        track_id: bookingRef.id,
+        client_email: user.email || '',
+        success_url: `${window.location.origin}/payment/status/processing?id=${bookingRef.id}`,
+        cancel_url: `${window.location.origin}/payment/status/cancelled?id=${bookingRef.id}`
+      };
+
+      Object.keys(fields).forEach(key => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = fields[key];
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+      
     } catch (error) {
       console.error("Payment redirect error:", error);
       toast.error('Booking creation failed. Please try again.');
@@ -277,23 +327,43 @@ export default function BookingConfirmation() {
               </div>
             </div>
 
-            <button 
-              onClick={handlePayRedirect}
-              disabled={isRedirecting}
-              className="primary-button w-full py-4 text-lg font-black flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-primary/20 relative z-10 uppercase tracking-widest"
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                await handlePayRedirect();
+              }}
+              className="w-full relative z-10 px-6"
             >
-              {isRedirecting ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard size={20} />
-                  Pay Now
-                </>
-              )}
-            </button>
+              <button 
+                type="submit"
+                disabled={isRedirecting}
+                style={{
+                  backgroundColor: '#9c27b0',
+                  color: 'white',
+                  padding: '16px 24px',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: isRedirecting ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 900,
+                  width: '100%',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  boxShadow: '0 10px 25px -5px rgba(156, 39, 176, 0.3)',
+                  transition: 'all 0.3s ease',
+                }}
+                className="hover:translate-y-[-2px] active:translate-y-[1px] duration-300"
+              >
+                {isRedirecting ? (
+                  <span className="flex items-center justify-center gap-3">
+                    <Loader2 className="animate-spin" size={20} />
+                    Processing...
+                  </span>
+                ) : (
+                  "Pay with Cashmaal (EasyPaisa/JazzCash / bank transfer)"
+                )}
+              </button>
+            </form>
             
             <div className="flex items-center justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all relative z-10">
                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />

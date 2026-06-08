@@ -4,6 +4,8 @@ import { CheckCircle, XCircle, AlertCircle, ArrowLeft, Home, Loader2 } from 'luc
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { RefreshButton } from '../components/RefreshButton';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function PaymentStatus() {
   const { status: initialStatus } = useParams<{ status: string }>();
@@ -20,6 +22,17 @@ export default function PaymentStatus() {
       const data = await response.json();
 
       if (data.status === 'confirmed') {
+        // Update status in Firestore to stay synced with backend payment success
+        try {
+          const bookingDocRef = doc(db, 'bookings', bookingId);
+          await updateDoc(bookingDocRef, {
+            status: 'confirmed',
+            paymentStatus: 'paid'
+          });
+        } catch (fiErr) {
+          console.error("Error updating Firestore status:", fiErr);
+        }
+
         setStatus('success');
         setIsVerifying(false);
         toast.success('Payment Done!');
@@ -65,7 +78,7 @@ export default function PaymentStatus() {
       return {
         icon: <Loader2 className="text-primary animate-spin" size={64} />,
         title: 'Confirming Payment...',
-        message: 'We are checking your payment with PayFast. Please wait.',
+        message: 'We are checking your payment with Cashmaal. Please wait.',
         bg: 'bg-primary/10',
         border: 'border-primary/20'
       };
