@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #C8A97E;
-  --color-primary-dark: #A67C52;
+  --color-primary: #E5C354;
+  --color-primary-dark: #D4AF37;
   --color-secondary: #E5E5E5;
   --color-heading: #1F1F1F;
   --color-body: #4A4A4A;
@@ -15,9 +15,9 @@
 }
 
 :root {
-  --background: #FAF9F6;
-  --foreground: #4A4A4A;
-  --heading: #1F1F1F;
+  --background: #FFFFFF;
+  --foreground: #222222;
+  --heading: #111111;
   --border-card: #E5E5E5;
   --bg-card: #FFFFFF;
   --bg-input: #FFFFFF;
@@ -36,23 +36,50 @@
   }
 }
 
+.shadow-subtle {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
 .glass-card {
   background-color: var(--bg-card);
-  @apply border border-border-card rounded-2xl p-6 transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)];
+  border: 1px solid var(--border-card);
+  border-radius: 2rem;
+  padding: 1.5rem;
+  transition: all 500ms;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.glass-card:hover {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
 }
 
 .primary-button {
-  background-color: var(--color-primary-dark);
-  @apply text-white font-medium py-3 px-8 rounded-xl transition-all duration-500 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 tracking-wide uppercase text-xs;
+  background-color: #D4AF37;
+  color: #111111;
+  min-height: 44px;
+  @apply font-semibold py-3 px-8 rounded-xl transition-all duration-500 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 tracking-wide uppercase text-xs hover:bg-[#c29e2e] hover:shadow-md select-none;
 }
 
 .secondary-button {
-  @apply bg-white hover:bg-secondary/20 text-heading border border-secondary font-medium py-3 px-8 rounded-xl transition-all duration-500 active:scale-95 uppercase text-xs tracking-wide;
+  min-height: 44px;
+  @apply bg-white hover:bg-secondary/20 text-heading border border-secondary font-medium py-3 px-8 rounded-xl transition-all duration-500 active:scale-95 uppercase text-xs tracking-wide select-none;
 }
 
 .input-field {
   background-color: var(--bg-input);
+  min-height: 44px;
   @apply border border-secondary rounded-xl py-3 px-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all text-heading placeholder:text-body/30;
+}
+
+/* Touch support & smooth scrolling */
+.touch-scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.touch-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Day Picker Styles */

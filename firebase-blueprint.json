@@ -25,7 +25,9 @@
         "price": { "type": "number" },
         "location": { "type": "string" },
         "city": { "type": "string" },
-        "images": { "type": "array", "items": { "type": "string" } }
+        "images": { "type": "array", "items": { "type": "string" } },
+        "hostCode": { "type": "string" },
+        "listingCode": { "type": "string" }
       },
       "required": ["title", "description", "price", "location", "images"]
     },
@@ -42,7 +44,17 @@
         "totalPrice": { "type": "number" },
         "checkIn": { "type": "string" },
         "checkOut": { "type": "string" },
-        "nights": { "type": "number" }
+        "nights": { "type": "number" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "selectedDates": { "type": "array", "items": { "type": "string" } },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "totalHours": { "type": "number" },
+        "durationType": { "type": "string", "enum": ["12h", "24h"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "hostCode": { "type": "string" },
+        "listingCode": { "type": "string" }
       },
       "required": ["userId", "listingId", "status", "createdAt"]
     },

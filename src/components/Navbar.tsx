@@ -58,31 +58,31 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="border-b border-secondary bg-white/95 backdrop-blur-md sticky top-0 z-[60] transition-all duration-500">
+      <nav className="border-b border-[#001730] bg-[#001f3f] sticky top-0 z-[60] transition-all duration-500 shadow-md">
         <div className="container mx-auto px-6 h-24 flex items-center gap-8">
           <button 
             onClick={() => setIsDrawerOpen(true)}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-background border border-secondary text-primary-dark hover:bg-primary-dark hover:text-white transition-all duration-500 active:scale-90"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/10 border border-white/20 text-white hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37] transition-all duration-500 active:scale-90 cursor-pointer"
             aria-label="Open Menu"
           >
             <Menu size={24} strokeWidth={1.5} />
           </button>
 
           <Link to="/" className="flex items-center gap-3 group">
-            <span className="text-2xl md:text-3xl font-semibold text-heading uppercase tracking-tighter leading-none">
-              BIN <span className="text-primary-dark italic font-normal tracking-tight">USMAN</span>
+            <span className="text-2xl md:text-3xl font-semibold text-white uppercase tracking-tighter leading-none">
+              BIN <span className="text-[#D4AF37] group-hover:text-amber-300 italic font-normal tracking-tight transition-colors duration-300">USMAN</span>
             </span>
           </Link>
 
           <div className="ml-auto hidden md:flex items-center gap-4">
              {user && (
-               <div className="flex items-center gap-3 px-4 py-2 bg-background/50 rounded-full border border-secondary">
-                 <div className="w-8 h-8 rounded-full bg-primary-dark text-white flex items-center justify-center text-[10px] font-black uppercase">
+               <div className="flex items-center gap-3 px-4 py-2 bg-white/10 rounded-full border border-white/10">
+                 <div className="w-8 h-8 rounded-full bg-[#D4AF37] text-[#111111] flex items-center justify-center text-[10px] font-black uppercase">
                    {profile?.fullName?.[0] || user.email?.[0]}
                  </div>
                  <div className="flex flex-col">
-                   <span className="text-[9px] font-black text-heading uppercase tracking-widest">{profile?.fullName || 'Guest'}</span>
-                   <span className="text-[8px] text-body/40 uppercase tracking-widest leading-none">User Account</span>
+                   <span className="text-[9px] font-black text-white uppercase tracking-widest">{profile?.fullName || 'Guest'}</span>
+                   <span className="text-[8px] text-white/60 uppercase tracking-widest leading-none">User Account</span>
                  </div>
                </div>
              )}

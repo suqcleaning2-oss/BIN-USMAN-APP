@@ -29,10 +29,12 @@ export default function Login() {
             const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
             await setDoc(docRef, {
               id: user.uid,
+              uid: user.uid,
               fullName: user.displayName || 'Google User',
               name: user.displayName || 'Google User',
               email: user.email || '',
               phone: user.phoneNumber || '',
+              phoneNumber: user.phoneNumber || '',
               role: isAdminEmail ? 'admin' : 'user',
               blocked: false,
               createdAt: serverTimestamp(),
@@ -65,10 +67,12 @@ export default function Login() {
         const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
         await setDoc(docRef, {
           id: user.uid,
+          uid: user.uid,
           fullName: user.displayName || email.split('@')[0],
           name: user.displayName || email.split('@')[0],
           email: user.email || '',
           phone: '',
+          phoneNumber: '',
           role: isAdminEmail ? 'admin' : 'user',
           blocked: false,
           createdAt: serverTimestamp(),
@@ -131,10 +135,12 @@ export default function Login() {
         const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
         await setDoc(docRef, {
           id: user.uid,
+          uid: user.uid,
           fullName: user.displayName || 'Google User',
           name: user.displayName || 'Google User',
           email: user.email || '',
           phone: user.phoneNumber || '',
+          phoneNumber: user.phoneNumber || '',
           role: isAdminEmail ? 'admin' : 'user',
           blocked: false,
           createdAt: serverTimestamp(),

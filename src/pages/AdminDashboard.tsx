@@ -31,9 +31,10 @@ interface Listing {
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'bookings' | 'listings'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'listings' | 'users'>('bookings');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
   const [counts, setCounts] = useState({ users: 1, revenue: 0 });
   const [loading, setLoading] = useState(false);
 
@@ -69,7 +70,7 @@ export default function AdminDashboard() {
       const listingsData = listingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Listing));
       setListings(listingsData);
 
-      // 4. Fetch user count
+      // 4. Fetch users
       const usersPath = 'users';
       let usersSnap;
       try {
@@ -78,8 +79,17 @@ export default function AdminDashboard() {
         handleFirestoreError(err, OperationType.GET, usersPath);
       }
       
+      const usersData = usersSnap ? usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) : [];
+      // Sort users by createdAt desc
+      usersData.sort((a: any, b: any) => {
+        const timeA = b.createdAt?.seconds || (typeof b.createdAt?.toDate === 'function' ? b.createdAt.toDate().getTime() : 0);
+        const timeB = a.createdAt?.seconds || (typeof a.createdAt?.toDate === 'function' ? a.createdAt.toDate().getTime() : 0);
+        return timeA - timeB;
+      });
+      setUsersList(usersData);
+
       setCounts({
-        users: usersSnap.size,
+        users: usersSnap ? usersSnap.size : 0,
         revenue: totalRevenue
       });
     } catch (error) {
@@ -214,9 +224,15 @@ export default function AdminDashboard() {
         >
           Apartments
         </button>
+        <button 
+          onClick={() => setActiveTab('users')}
+          className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${activeTab === 'users' ? 'bg-primary-dark text-white shadow-xl' : 'text-body/40 hover:text-heading'}`}
+        >
+          Users
+        </button>
       </div>
 
-      {activeTab === 'bookings' ? (
+      {activeTab === 'bookings' && (
         <div className="space-y-8">
           <div className="overflow-hidden rounded-[2.5rem] border border-secondary shadow-2xl bg-white">
             <table className="w-full text-left">
@@ -317,7 +333,9 @@ export default function AdminDashboard() {
             </table>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'listings' && (
         <div className="space-y-10">
           <div className="flex justify-between items-center bg-white p-8 rounded-[2rem] border border-secondary shadow-sm">
             <div className="space-y-1">
@@ -376,6 +394,73 @@ export default function AdminDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'users' && (
+        <div className="space-y-8">
+          <div className="overflow-hidden rounded-[2.5rem] border border-secondary shadow-2xl bg-white">
+            <table className="w-full text-left">
+              <thead className="bg-background border-b border-secondary">
+                <tr>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">User Information</th>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">Phone Number</th>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">UID</th>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">Joined Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-secondary/50">
+                {usersList.map((usr) => (
+                  <tr key={usr.id || usr.uid} className="hover:bg-background transition-colors group">
+                    <td className="px-10 py-8">
+                      <div className="space-y-1.5">
+                        <span className="font-semibold text-heading text-lg uppercase tracking-tight block">
+                          {usr.name || usr.fullName || 'No Name'}
+                        </span>
+                        <span className="text-[11px] text-body/60 font-medium lowercase">
+                          {usr.email || 'no-email'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-10 py-8 font-semibold text-heading text-sm whitespace-nowrap">
+                      {usr.phoneNumber || usr.phone || <span className="text-body/20 italic font-medium">Not Provided</span>}
+                    </td>
+                    <td className="px-10 py-8 font-mono text-xs text-body/40">
+                      {usr.uid || usr.id || 'N/A'}
+                    </td>
+                    <td className="px-10 py-8 text-[11px] text-primary-dark/60 font-black tracking-widest uppercase">
+                      {(() => {
+                        const createdAt = usr.createdAt;
+                        if (createdAt?.seconds) {
+                          try {
+                            return format(new Date(createdAt.seconds * 1000), 'p, PPP');
+                          } catch (e) {
+                            return 'Recent';
+                          }
+                        }
+                        if (typeof createdAt === 'string') {
+                          try {
+                            const d = new Date(createdAt);
+                            return isNaN(d.getTime()) ? 'Recent' : format(d, 'p, PPP');
+                          } catch (e) {
+                            return 'Recent';
+                          }
+                        }
+                        return 'Recent';
+                      })()}
+                    </td>
+                  </tr>
+                ))}
+                {usersList.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center py-16 text-body/40 font-black uppercase text-xs tracking-widest">
+                      No users registered yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

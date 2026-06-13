@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MapPin, Info, ArrowLeft, Calendar as CalendarIcon, Info as InfoIcon, CheckCircle2, Star, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { DayPicker, DateRange } from 'react-day-picker';
 import { format, differenceInDays, isBefore, startOfToday, addDays, eachDayOfInterval, areIntervalsOverlapping, parseISO, isSameDay } from 'date-fns';
-import { doc, getDoc, collection, query, where, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot, orderBy, getDocs, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { updateListingRating } from '../services/listingService';
 import 'react-day-picker/dist/style.css';
 import { RefreshButton } from '../components/RefreshButton';
 
@@ -34,13 +35,19 @@ interface Review {
 
 export default function ListingDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [blockedDates, setBlockedDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  // Write a Review States
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewText, setNewReviewText] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   
   // Date selection state
   const [range, setRange] = useState<DateRange | undefined>({
@@ -150,7 +157,75 @@ export default function ListingDetail() {
     }
   };
 
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error('You must be logged in to leave a review.');
+      return;
+    }
+    if (!newReviewText.trim()) {
+      toast.error('Please write some text for your review.');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    const reviewsPath = 'reviews';
+    try {
+      await addDoc(collection(db, reviewsPath), {
+        userId: user.uid,
+        userName: profile?.fullName || user.displayName || 'Guest',
+        listingId: id,
+        listingTitle: listing.title,
+        rating: newReviewRating,
+        text: newReviewText.trim(),
+        createdAt: serverTimestamp()
+      });
+
+      toast.success('Review posted successfully!');
+      setNewReviewText('');
+      setNewReviewRating(5);
+
+      if (id) {
+        await updateListingRating(id);
+      }
+
+      await Promise.all([
+        fetchListing(),
+        fetchReviews()
+      ]);
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      handleFirestoreError(err, OperationType.CREATE, reviewsPath);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!window.confirm('Are you sure you want to delete your review?')) {
+      return;
+    }
+    const reviewPath = `reviews/${reviewId}`;
+    try {
+      await deleteDoc(doc(db, 'reviews', reviewId));
+      toast.success('Review deleted successfully!');
+
+      if (id) {
+        await updateListingRating(id);
+      }
+
+      await Promise.all([
+        fetchListing(),
+        fetchReviews()
+      ]);
+    } catch (err) {
+      console.error('Error deleting review:', err);
+      handleFirestoreError(err, OperationType.DELETE, reviewPath);
+    }
+  };
+
   useEffect(() => {
+    setActiveImageUrl(null);
     fetchListing();
     fetchBlockedDates();
     fetchReviews();
@@ -247,24 +322,49 @@ export default function ListingDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-4">
         {/* Left: Images */}
         <div className="space-y-8">
-          <div className="rounded-[2.5rem] overflow-hidden aspect-video border border-secondary shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative group">
-            <img 
-              src={(listing.images && listing.images.length > 0) ? listing.images[0] : 'https://picsum.photos/seed/house/1200/800'} 
-              alt={listing.title} 
-              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest text-heading shadow-sm">
-              Best Choice
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-6">
-            {listing.images && listing.images.length > 1 && listing.images.slice(1, 4).map((img, i) => (
-              <div key={i} className="rounded-3xl overflow-hidden aspect-square border border-secondary group cursor-pointer shadow-sm hover:shadow-md transition-all">
-                <img src={img} alt={`${listing.title} ${i+1}`} className="w-full h-full object-cover transition-transform group-hover:scale-110" referrerPolicy="no-referrer" />
-              </div>
-            ))}
-          </div>
+          {(() => {
+            const currentImage = activeImageUrl || (listing.images && listing.images.length > 0 ? listing.images[0] : 'https://picsum.photos/seed/house/1200/800');
+            return (
+              <>
+                <div className="rounded-[2.5rem] overflow-hidden aspect-video border border-secondary shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative group">
+                  <img 
+                    src={currentImage} 
+                    alt={listing.title} 
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest text-heading shadow-sm">
+                    Best Choice
+                  </div>
+                </div>
+
+                {listing.images && listing.images.length > 0 && (
+                  <div className={`grid gap-6 ${listing.images.length <= 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                    {listing.images.slice(0, 4).map((img, i) => {
+                      const isActive = img === currentImage;
+                      return (
+                        <div 
+                          key={i} 
+                          id={`thumbnail-selection-${i}`}
+                          onClick={() => setActiveImageUrl(img)}
+                          className={`rounded-3xl overflow-hidden aspect-square border-2 cursor-pointer shadow-sm hover:shadow-md transition-all duration-300 ${
+                            isActive ? 'border-primary-dark scale-95 ring-2 ring-primary-dark/20' : 'border-secondary/60 hover:border-body/30'
+                          }`}
+                        >
+                          <img 
+                            src={img} 
+                            alt={`${listing.title} ${i+1}`} 
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
+                            referrerPolicy="no-referrer" 
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           <div className="space-y-4 pt-4 border-t border-secondary">
             <div className="flex items-center gap-3 text-primary-dark">
@@ -395,6 +495,59 @@ export default function ListingDetail() {
           </div>
         </div>
 
+        {/* Dynamic Interactive Write a Review Form */}
+        {user ? (
+          <div className="max-w-xl mx-auto w-full bg-white p-8 md:p-10 rounded-[2.5rem] border border-secondary shadow-sm space-y-6">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-heading text-center">
+              Share Your <span className="text-primary-dark italic font-normal text-lg lowercase">Feedback</span>
+            </h3>
+            <form onSubmit={handleSubmitReview} className="space-y-6">
+              <div className="space-y-2 flex flex-col items-center text-center">
+                <label className="text-[9px] font-black uppercase tracking-widest text-body/40">Select Stars</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewReviewRating(star)}
+                      className={`transition-all transform hover:scale-125 duration-300 ${
+                        star <= newReviewRating ? 'text-primary-dark' : 'text-secondary/40'
+                      }`}
+                    >
+                      <Star size={24} fill={star <= newReviewRating ? 'currentColor' : 'none'} strokeWidth={1} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase tracking-widest text-body/40 ml-1">Review Comment</label>
+                <textarea
+                  required
+                  value={newReviewText}
+                  onChange={(e) => setNewReviewText(e.target.value)}
+                  placeholder="Tell others what you loved about your stay..."
+                  className="w-full bg-background/30 border border-secondary rounded-[1.75rem] p-5 h-28 text-xs focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all resize-none italic font-medium leading-relaxed placeholder:text-body/20"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingReview}
+                className="w-full bg-primary-dark text-white font-black uppercase tracking-widest py-4.5 rounded-[1.25rem] text-[9px] hover:bg-heading hover:shadow-md transition-all duration-300 cursor-pointer"
+              >
+                {isSubmittingReview ? 'Posting...' : 'Post Review'}
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="max-w-xl mx-auto w-full bg-zinc-50 border border-secondary border-dashed p-8 rounded-[2rem] text-center">
+            <p className="text-[10px] text-body/40 font-black uppercase tracking-widest">
+              Please log in to write a review.
+            </p>
+          </div>
+        )}
+
         {reviewsLoading ? (
           <div className="h-40 flex flex-col items-center justify-center text-body gap-4">
             <div className="w-12 h-px bg-secondary animate-pulse" />
@@ -403,7 +556,7 @@ export default function ListingDetail() {
         ) : reviews.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {reviews.map((review) => (
-              <div key={review.id} className="bg-white p-8 rounded-[2.5rem] border border-secondary hover:shadow-xl transition-all duration-700">
+              <div key={review.id} className="bg-white p-8 rounded-[2rem] border border-secondary shadow-subtle hover:shadow-md transition-all duration-700">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-background border border-secondary flex items-center justify-center text-primary-dark">
@@ -422,15 +575,25 @@ export default function ListingDetail() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star 
-                        key={star} 
-                        size={8} 
-                        fill={star <= review.rating ? "currentColor" : "none"} 
-                        className={star <= review.rating ? "text-primary-dark" : "text-secondary"} 
-                      />
-                    ))}
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star 
+                          key={star} 
+                          size={8} 
+                          fill={star <= review.rating ? "currentColor" : "none"} 
+                          className={star <= review.rating ? "text-primary-dark" : "text-secondary"} 
+                        />
+                      ))}
+                    </div>
+                    {user && user.uid === review.userId && (
+                      <button
+                        onClick={() => handleDeleteReview(review.id)}
+                        className="text-[9px] font-black uppercase text-red-500 hover:text-red-700 tracking-widest cursor-pointer hover:underline transition-colors mt-1"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
                 <p className="text-body/70 text-sm leading-relaxed italic font-medium tracking-wide">

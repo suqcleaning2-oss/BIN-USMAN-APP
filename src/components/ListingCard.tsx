@@ -61,7 +61,7 @@ export default function ListingCard({ id, title, price, location, locationName, 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -8 }}
-      className="glass-card overflow-hidden group cursor-pointer border-none bg-white p-0 rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-700"
+      className="overflow-hidden group cursor-pointer border border-[#E5E5E5] bg-white p-0 rounded-[2.5rem] shadow-subtle hover:shadow-xl transition-all duration-700 font-sans"
     >
       <Link to={`/listing/${id}`}>
         <div className="relative aspect-[4/5] overflow-hidden rounded-t-[2.5rem]">

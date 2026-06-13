@@ -77,17 +77,44 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <div className="relative rounded-[2.5rem] overflow-hidden h-[400px] flex flex-col justify-center items-center text-center p-6 bg-[#F3F0E9] border border-secondary/50 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
+      <div className="relative rounded-[2.5rem] overflow-hidden min-h-[460px] md:h-[500px] py-10 flex flex-col justify-center items-center text-center p-6 bg-[#F3F0E9] border border-secondary/50 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
           <div className="h-full w-full" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '60px 60px' }} />
         </div>
         
-        <div className="space-y-6 relative z-10 max-w-2xl">
-          <h1 className="text-5xl md:text-7xl font-semibold tracking-tighter leading-tight text-heading uppercase">
-            Find a <span className="text-primary-dark italic font-normal">Place to Stay</span>
+        <div className="space-y-6 relative z-10 w-full max-w-4xl px-2 md:px-6">
+          <div className="text-center space-y-2">
+            <span className="inline-block text-[11px] font-black tracking-[0.35em] text-primary-dark uppercase bg-primary-dark/5 px-4 py-1.5 rounded-full">
+              BIN USMAN
+            </span>
+          </div>
+
+          <h1 
+            id="dream-destination-heading"
+            style={{
+              borderColor: '#262424',
+              borderStyle: 'solid',
+              borderWidth: '1px',
+              backgroundColor: '#f5ebf0',
+              textAlign: 'center',
+              fontWeight: 'bold',
+              fontFamily: 'Verdana, sans-serif',
+              color: '#050505',
+              minHeight: '182px',
+              height: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              lineHeight: '1.25',
+              letterSpacing: '0.03em',
+              width: '100%',
+            }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] uppercase px-6 py-6 rounded-3xl shadow-[0_12px_30px_rgba(0,0,0,0.03)]"
+          >
+            <span>FIND A <span style={{ color: '#D4AF37' }}>DREAM DESTINATION</span> WITH US</span>
           </h1>
           <p className="text-body/80 max-w-md mx-auto font-medium text-sm tracking-wide leading-relaxed">
-            Find the best apartments for rent in Pakistan's top locations.
+            Find the best apartments in Pakistan's top locations.
           </p>
           
           <div className="w-full max-w-md relative group mx-auto pt-4">
@@ -113,7 +140,7 @@ export default function Home() {
           <span className="text-[10px] font-medium uppercase tracking-widest text-body/40">{listings.length} Places Available</span>
         </div>
         
-        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 snap-x">
+        <div className="flex gap-3 overflow-x-auto touch-scroll-x pb-4 scrollbar-hide -mx-4 px-4 snap-x">
           {PAKISTAN_CITIES.map((city) => (
             <button
               key={city}
@@ -121,7 +148,7 @@ export default function Home() {
               className={`
                 flex items-center gap-2 px-8 py-3.5 rounded-full whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all snap-start
                 ${selectedCity === city 
-                  ? 'bg-primary-dark text-white shadow-xl shadow-primary-dark/10 ring-4 ring-primary-dark/5' 
+                  ? 'bg-primary-dark text-neutral-900 font-bold shadow-xl shadow-primary-dark/10 ring-4 ring-primary-dark/5' 
                   : 'bg-white text-body/40 border border-secondary hover:border-primary-dark/30 hover:text-heading'}
               `}
             >

@@ -21,7 +21,12 @@ export default function AdminListingEditor() {
     latitude: '',
     longitude: '',
     city: 'Islamabad',
-    images: ['']
+    images: [''],
+    hostCode: '',
+    listingCode: '',
+    bookingType: 'both',
+    price12hrs: '',
+    price24hrs: ''
   });
 
   const PAKISTAN_CITIES = [
@@ -53,7 +58,12 @@ export default function AdminListingEditor() {
               latitude: data.latitude ? String(data.latitude) : '',
               longitude: data.longitude ? String(data.longitude) : '',
               city: data.city || 'Islamabad',
-              images: data.images && data.images.length > 0 ? data.images : ['']
+              images: data.images && data.images.length > 0 ? data.images : [''],
+              hostCode: data.hostCode || '',
+              listingCode: data.listingCode || '',
+              bookingType: data.bookingType || 'both',
+              price12hrs: data.price12hrs ? String(data.price12hrs) : '',
+              price24hrs: data.price24hrs ? String(data.price24hrs) : ''
             });
           }
         } catch (error) {
@@ -85,9 +95,12 @@ export default function AdminListingEditor() {
     e.preventDefault();
     setLoading(true);
 
+    const basePrice = parseFloat(formData.price) || 0;
     const dataToSave = {
       ...formData,
-      price: parseFloat(formData.price),
+      price: basePrice,
+      price12hrs: formData.price12hrs ? parseFloat(formData.price12hrs) : basePrice,
+      price24hrs: formData.price24hrs ? parseFloat(formData.price24hrs) : basePrice,
       latitude: formData.latitude ? parseFloat(formData.latitude) : null,
       longitude: formData.longitude ? parseFloat(formData.longitude) : null,
       images: formData.images.filter(img => img.trim() !== '')
@@ -198,7 +211,7 @@ export default function AdminListingEditor() {
             />
           </div>
           <div className="space-y-4">
-            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">Price (Rs / Night)</label>
+            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">Price (Rs / Night - Default)</label>
             <input 
               type="number" 
               required
@@ -206,6 +219,39 @@ export default function AdminListingEditor() {
               placeholder="e.g. 10000"
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+            />
+          </div>
+          <div className="space-y-4">
+            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">Booking Type Allowed</label>
+            <select
+              required
+              className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all appearance-none cursor-pointer italic"
+              value={formData.bookingType}
+              onChange={(e) => setFormData({ ...formData, bookingType: e.target.value })}
+            >
+              <option value="both">Both (12 Hours & 24 Hours)</option>
+              <option value="12hrs">12 Hours Only</option>
+              <option value="24hrs">24 Hours Only</option>
+            </select>
+          </div>
+          <div className="space-y-4">
+            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">Price for 12 Hours (Rs)</label>
+            <input 
+              type="number" 
+              className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
+              placeholder="Omit to use Default Price"
+              value={formData.price12hrs}
+              onChange={(e) => setFormData({ ...formData, price12hrs: e.target.value })}
+            />
+          </div>
+          <div className="space-y-4">
+            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">Price for 24 Hours (Rs)</label>
+            <input 
+              type="number" 
+              className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
+              placeholder="Omit to use Default Price"
+              value={formData.price24hrs}
+              onChange={(e) => setFormData({ ...formData, price24hrs: e.target.value })}
             />
           </div>
           <div className="space-y-4">
@@ -220,6 +266,26 @@ export default function AdminListingEditor() {
                 <option key={city} value={city}>{city}</option>
               ))}
             </select>
+          </div>
+          <div className="space-y-4">
+            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">Host Code</label>
+            <input 
+              type="text" 
+              className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
+              placeholder="e.g. BU-HOST"
+              value={formData.hostCode}
+              onChange={(e) => setFormData({ ...formData, hostCode: e.target.value })}
+            />
+          </div>
+          <div className="space-y-4">
+            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">Listing Code</label>
+            <input 
+              type="text" 
+              className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
+              placeholder="e.g. LST-101"
+              value={formData.listingCode}
+              onChange={(e) => setFormData({ ...formData, listingCode: e.target.value })}
+            />
           </div>
         </div>
 

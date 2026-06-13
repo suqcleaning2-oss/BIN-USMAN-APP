@@ -31,10 +31,12 @@ export default function Register() {
             const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
             const userData = {
               id: user.uid,
+              uid: user.uid,
               fullName: user.displayName || 'Google User',
               name: user.displayName || 'Google User',
               email: user.email || '',
               phone: user.phoneNumber || '',
+              phoneNumber: user.phoneNumber || '',
               role: isAdminEmail ? 'admin' : 'user',
               blocked: false,
               createdAt: serverTimestamp(),
@@ -110,10 +112,12 @@ export default function Register() {
       const isAdminEmail = email.toLowerCase() === 'suqcleaning2@gmail.com' || email.toLowerCase() === 'mqaisar11550@gmail.com';
       const userData = {
         id: user.uid,
+        uid: user.uid,
         fullName: fullName.trim(),
         name: fullName.trim(),
         email: email.trim(),
         phone: phone.trim(),
+        phoneNumber: phone.trim(),
         role: isAdminEmail ? 'admin' : 'user',
         blocked: false,
         createdAt: serverTimestamp(),
@@ -124,6 +128,7 @@ export default function Register() {
         handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
       }
 
+      setLoading(false);
       toast.success('Account created successfully!');
       navigate('/');
     } catch (error: any) {
@@ -153,10 +158,12 @@ export default function Register() {
         const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
         const userData = {
           id: user.uid,
+          uid: user.uid,
           fullName: user.displayName || 'Google User',
           name: user.displayName || 'Google User',
           email: user.email || '',
           phone: user.phoneNumber || '',
+          phoneNumber: user.phoneNumber || '',
           role: isAdminEmail ? 'admin' : 'user',
           blocked: false,
           createdAt: serverTimestamp(),

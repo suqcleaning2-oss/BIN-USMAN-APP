@@ -91,7 +91,7 @@ service cloud.firestore {
       allow read, get, list: if true;
       allow create: if isDbAdmin() && isValidListing(request.resource.data);
       allow update: if isDbAdmin() || (
-        isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['rating', 'reviewCount'])
+        isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'reviewCount'])
       );
       allow delete: if isDbAdmin();
     }
@@ -110,7 +110,8 @@ service cloud.firestore {
     match /reviews/{reviewId} {
       allow read, get, list: if true;
       allow create: if isSignedIn() && isValidReview(request.resource.data);
-      allow update, delete: if isDbAdmin();
+      allow update: if isDbAdmin();
+      allow delete: if isDbAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // Wishlists Collection
