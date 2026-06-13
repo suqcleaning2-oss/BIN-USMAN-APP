@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../lib/firebase';
+// @ts-ignore
+import brandLogo from '../assets/images/luxury_brand_logo_1781392420468.jpg';
 import { 
   LogOut, 
   User, 
@@ -58,19 +60,40 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="border-b border-[#001730] bg-[#001f3f] sticky top-0 z-[60] transition-all duration-500 shadow-md">
-        <div className="container mx-auto px-6 h-24 flex items-center gap-8">
+      <nav className="border-b border-[#0D366D] bg-[#0B2A5B] sticky top-0 z-[60] transition-all duration-500 shadow-xl backdrop-blur-md">
+        <div className="container mx-auto px-6 h-24 flex items-center">
           <button 
             onClick={() => setIsDrawerOpen(true)}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/10 border border-white/20 text-white hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37] transition-all duration-500 active:scale-90 cursor-pointer"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/10 border border-white/20 text-white hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37] transition-all duration-500 active:scale-90 cursor-pointer shadow-inner shrink-0"
             aria-label="Open Menu"
           >
             <Menu size={24} strokeWidth={1.5} />
           </button>
 
-          <Link to="/" className="flex items-center gap-3 group">
-            <span className="text-2xl md:text-3xl font-semibold text-white uppercase tracking-tighter leading-none">
-              BIN <span className="text-[#D4AF37] group-hover:text-amber-300 italic font-normal tracking-tight transition-colors duration-300">USMAN</span>
+          {/* Luxury Diagonal Slash Separator */}
+          <span className="text-white/20 text-3xl font-extralight select-none mx-4 leading-none select-none transition-colors duration-500 hover:text-[#D4AF37]/45">/</span>
+
+          <Link to="/" className="flex items-center gap-3.5 group select-none">
+            {/* Pure, Streamlined Floating Circular Logo Emblem */}
+            <div className="w-[52px] h-[52px] rounded-full overflow-hidden shrink-0 flex items-center justify-center transition-all duration-700 group-hover:scale-110 active:scale-95 shadow-[0_8px_20px_rgba(0,0,0,0.5)] bg-transparent relative">
+              <img 
+                src={brandLogo} 
+                alt="Bin Usman Logo" 
+                className="w-full h-full object-cover select-none scale-[1.42] transition-transform duration-700 group-hover:scale-[1.50]"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            {/* Premium Gold Embossed Serif Brand Text */}
+            <span 
+              style={{
+                fontFamily: '"Cinzel", "Playfair Display", Georgia, serif',
+                textShadow: '0px 1.5px 3px rgba(0, 0, 0, 0.6), 0px 0px 1px rgba(255, 255, 255, 0.2)',
+                letterSpacing: '0.04em'
+              }}
+              className="text-2xl md:text-3xl font-extrabold uppercase leading-none flex items-center bg-gradient-to-b from-[#FFFDF0] via-[#D4AF37] to-[#95731C] bg-clip-text text-transparent group-hover:from-white group-hover:to-[#D4AF37] transition-all duration-500"
+            >
+              BIN&nbsp;USMAN
             </span>
           </Link>
 

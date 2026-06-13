@@ -90,28 +90,30 @@ export default function Home() {
           </div>
 
           <h1 
-            id="dream-destination-heading"
+            id="best-hotels-apartments-heading"
             style={{
-              borderColor: '#262424',
+              borderColor: '#E5E5E5',
               borderStyle: 'solid',
               borderWidth: '1px',
-              backgroundColor: '#f5ebf0',
+              backgroundColor: '#FFFFFF',
               textAlign: 'center',
-              fontWeight: 'bold',
-              fontFamily: 'Verdana, sans-serif',
-              color: '#050505',
-              minHeight: '182px',
+              fontWeight: '800',
+              fontFamily: '"Poppins", "Montserrat", sans-serif',
+              color: '#000033',
+              minHeight: '140px',
               height: 'auto',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              lineHeight: '1.25',
-              letterSpacing: '0.03em',
+              lineHeight: '1.3',
+              letterSpacing: '0.02em',
               width: '100%',
             }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] uppercase px-6 py-6 rounded-3xl shadow-[0_12px_30px_rgba(0,0,0,0.03)]"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] uppercase px-4 sm:px-8 py-6 sm:py-8 rounded-[2rem] shadow-[0_12px_40px_rgba(0,0,0,0.04)]"
           >
-            <span>FIND A <span style={{ color: '#D4AF37' }}>DREAM DESTINATION</span> WITH US</span>
+            <span className="leading-snug select-none">
+              FIND THE BEST <span style={{ color: '#D4AF37' }}>HOTELS AND APARTMENTS</span> WITH US
+            </span>
           </h1>
           <p className="text-body/80 max-w-md mx-auto font-medium text-sm tracking-wide leading-relaxed">
             Find the best apartments in Pakistan's top locations.
