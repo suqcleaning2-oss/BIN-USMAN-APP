@@ -70,10 +70,7 @@ export default function Navbar() {
             <Menu size={24} strokeWidth={1.5} />
           </button>
 
-          {/* Luxury Diagonal Slash Separator */}
-          <span className="text-white/20 text-3xl font-extralight select-none mx-4 leading-none select-none transition-colors duration-500 hover:text-[#D4AF37]/45">/</span>
-
-          <Link to="/" className="flex items-center gap-3.5 group select-none">
+          <Link to="/" className="flex items-center gap-3.5 group select-none ml-4">
             {/* Pure, Streamlined Floating Circular Logo Emblem */}
             <div className="w-[52px] h-[52px] rounded-full overflow-hidden shrink-0 flex items-center justify-center transition-all duration-700 group-hover:scale-110 active:scale-95 shadow-[0_8px_20px_rgba(0,0,0,0.5)] bg-transparent relative">
               <img 
