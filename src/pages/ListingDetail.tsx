@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MapPin, Info, ArrowLeft, Calendar as CalendarIcon, Info as InfoIcon, CheckCircle2, Star, User } from 'lucide-react';
+import { MapPin, Info, ArrowLeft, Calendar as CalendarIcon, Info as InfoIcon, CheckCircle2, Star, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { DayPicker, DateRange } from 'react-day-picker';
 import { format, differenceInDays, isBefore, startOfToday, addDays, eachDayOfInterval, areIntervalsOverlapping, parseISO, isSameDay } from 'date-fns';
@@ -39,6 +39,46 @@ export default function ListingDetail() {
   const navigate = useNavigate();
   const [listing, setListing] = useState<Listing | null>(null);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
+  const touchStartXRef = useRef<number>(0);
+
+  const getActiveImageIndices = () => {
+    if (!listing || !listing.images || listing.images.length === 0) {
+      return { currentImage: 'https://picsum.photos/seed/house/1200/800', activeIndex: 0, totalImages: 0 };
+    }
+    const currentImage = activeImageUrl || listing.images[0];
+    const activeIndex = Math.max(0, listing.images.indexOf(currentImage));
+    return { currentImage, activeIndex, totalImages: listing.images.length };
+  };
+
+  const handleNextImage = () => {
+    if (!listing || !listing.images || listing.images.length <= 1) return;
+    const { activeIndex, totalImages } = getActiveImageIndices();
+    const nextIndex = (activeIndex + 1) % totalImages;
+    setActiveImageUrl(listing.images[nextIndex]);
+  };
+
+  const handlePrevImage = () => {
+    if (!listing || !listing.images || listing.images.length <= 1) return;
+    const { activeIndex, totalImages } = getActiveImageIndices();
+    const prevIndex = (activeIndex - 1 + totalImages) % totalImages;
+    setActiveImageUrl(listing.images[prevIndex]);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!listing || !listing.images || listing.images.length <= 1) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartXRef.current - touchEndX;
+
+    if (diff > 50) {
+      handleNextImage();
+    } else if (diff < -50) {
+      handlePrevImage();
+    }
+  };
   const [reviews, setReviews] = useState<Review[]>([]);
   const [blockedDates, setBlockedDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,31 +363,91 @@ export default function ListingDetail() {
         {/* Left: Images */}
         <div className="space-y-8">
           {(() => {
-            const currentImage = activeImageUrl || (listing.images && listing.images.length > 0 ? listing.images[0] : 'https://picsum.photos/seed/house/1200/800');
+            const { currentImage, activeIndex, totalImages } = getActiveImageIndices();
             return (
               <>
-                <div className="rounded-[2.5rem] overflow-hidden aspect-video border border-secondary shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative group">
+                {/* Main Viewport Container */}
+                <div 
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                  className="rounded-[2.5rem] overflow-hidden aspect-video border border-secondary shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative group select-none"
+                >
                   <img 
                     src={currentImage} 
                     alt={listing.title} 
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-103"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest text-heading shadow-sm">
+                  
+                  {/* Badge Label */}
+                  <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest text-heading shadow-sm z-10">
                     Best Choice
                   </div>
+
+                  {totalImages > 1 && (
+                    <>
+                      {/* Swipe / Navigation Left Button */}
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePrevImage();
+                        }}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/75 hover:bg-white text-heading md:opacity-0 md:group-hover:opacity-100 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer z-20 backdrop-blur-md"
+                        aria-label="Previous Slide"
+                      >
+                        <ChevronLeft size={22} className="text-heading" strokeWidth={2.5} />
+                      </button>
+
+                      {/* Swipe / Navigation Right Button */}
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleNextImage();
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/75 hover:bg-white text-heading md:opacity-0 md:group-hover:opacity-100 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer z-20 backdrop-blur-md"
+                        aria-label="Next Slide"
+                      >
+                        <ChevronRight size={22} className="text-heading" strokeWidth={2.5} />
+                      </button>
+
+                      {/* Interactive Bottom Dots Overlay */}
+                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full max-w-[80%] overflow-x-auto scrollbar-none">
+                        {listing.images.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveImageUrl(listing.images[idx]);
+                            }}
+                            className={`w-2 h-2 rounded-full transition-all duration-300 shrink-0 ${
+                              idx === activeIndex 
+                                ? 'bg-[#D4AF37] w-5 shadow-[0_0_8px_rgba(212,175,55,0.8)]' 
+                                : 'bg-white/50 hover:bg-white/80'
+                            }`}
+                            aria-label={`Go to slide ${idx + 1}`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Floating Counter Badge */}
+                      <div className="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[10px] font-mono font-bold tracking-widest text-white shadow-md border border-white/10 z-20">
+                        {activeIndex + 1} / {totalImages}
+                      </div>
+                    </>
+                  )}
                 </div>
 
+                {/* Sub-thumb Grid listing all images completely */}
                 {listing.images && listing.images.length > 0 && (
-                  <div className={`grid gap-6 ${listing.images.length <= 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-                    {listing.images.slice(0, 4).map((img, i) => {
+                  <div className="grid gap-3.5 grid-cols-4 sm:grid-cols-6 lg:grid-cols-4 xl:grid-cols-6 transition-all duration-500">
+                    {listing.images.map((img, i) => {
                       const isActive = img === currentImage;
                       return (
                         <div 
                           key={i} 
                           id={`thumbnail-selection-${i}`}
                           onClick={() => setActiveImageUrl(img)}
-                          className={`rounded-3xl overflow-hidden aspect-square border-2 cursor-pointer shadow-sm hover:shadow-md transition-all duration-300 ${
+                          className={`rounded-2xl overflow-hidden aspect-square border-2 cursor-pointer shadow-sm hover:shadow-md transition-all duration-300 ${
                             isActive ? 'border-primary-dark scale-95 ring-2 ring-primary-dark/20' : 'border-secondary/60 hover:border-body/30'
                           }`}
                         >
