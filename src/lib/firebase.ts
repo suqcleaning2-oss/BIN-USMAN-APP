@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -7,6 +7,16 @@ import firebaseConfig from '../../firebase-applet-config.json';
 console.log("Initializing Firebase with project:", firebaseConfig.projectId);
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// Explicitly configure browserLocalPersistence to robustly persist authentication state
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log("Firebase local persistence set successfully to browserLocalPersistence");
+  })
+  .catch((err) => {
+    console.error("Error setting Firebase local persistence:", err);
+  });
+
 export const db = (firebaseConfig as any).firestoreDatabaseId 
   ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
   : getFirestore(app);

@@ -32,6 +32,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | null = null;
+    let hiddenTimestamp: number = 0;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenTimestamp = Date.now();
+      } else if (document.visibilityState === 'visible') {
+        const timeHidden = hiddenTimestamp ? (Date.now() - hiddenTimestamp) : 0;
+        console.log(`[Auth] App brought to foreground. Duration hidden: ${Math.round(timeHidden / 1000)}s`);
+
+        if (auth.currentUser) {
+          try {
+            // Re-auth / reload user and force token refresh on app foreground
+            await auth.currentUser.reload();
+            await auth.currentUser.getIdToken(true);
+            console.log("[Auth] Session active. Token refreshed successfully on resume.");
+          } catch (error) {
+            console.error("[Auth] Session broken or corrupted on resume. Executing soft refresh:", error);
+            window.location.reload();
+          }
+        } else if (hiddenTimestamp && timeHidden >= 4.5 * 60 * 1000) {
+          // Softly refresh the page after 5 minutes background behavior to clean up stale resources
+          console.log("[Auth] Resumed after 5+ minutes in background. Invoking soft page refresh.");
+          window.location.reload();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
@@ -72,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
