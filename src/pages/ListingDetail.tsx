@@ -279,6 +279,14 @@ export default function ListingDetail() {
     ]);
   };
 
+  const handleBack = () => {
+    if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   if (loading) return <div className="h-96 flex items-center justify-center">Loading...</div>;
   if (!listing) return null;
 
@@ -347,17 +355,17 @@ export default function ListingDetail() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 relative">
-      <div className="absolute top-0 right-0 z-50">
+    <div className="space-y-10 animate-in fade-in duration-500 relative">
+      <div className="flex items-center justify-between z-10">
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-secondary text-[10px] font-black uppercase tracking-[0.2em] text-heading hover:bg-neutral-50 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
+        >
+          <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" strokeWidth={2.5} />
+          <span>Back</span>
+        </button>
         <RefreshButton onRefresh={handleRefresh} />
       </div>
-      <button 
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-body/40 hover:text-primary-dark transition-colors group font-black text-[10px] uppercase tracking-[0.2em]"
-      >
-        <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-        Go Back
-      </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-4">
         {/* Left: Images */}

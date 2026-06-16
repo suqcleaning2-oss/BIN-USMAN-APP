@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, RefreshCw } from 'lucide-react';
+import { Heart, RefreshCw, ArrowLeft } from 'lucide-react';
 import { getUserWishlist } from '../services/wishlistService';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
 import { RefreshButton } from '../components/RefreshButton';
 
@@ -19,8 +19,17 @@ interface Listing {
 
 export default function MyWishlist() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleBack = () => {
+    if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
 
   const fetchWishlistData = async () => {
     if (!user) return;
@@ -64,8 +73,15 @@ export default function MyWishlist() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
-      <div className="absolute top-0 right-0 z-50">
+    <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
+      <div className="flex items-center justify-between z-10">
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-secondary text-[10px] font-black uppercase tracking-[0.2em] text-heading hover:bg-neutral-50 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
+        >
+          <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" strokeWidth={2.5} />
+          <span>Back</span>
+        </button>
         <RefreshButton onRefresh={fetchWishlistData} />
       </div>
       

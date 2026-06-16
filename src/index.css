@@ -25,10 +25,29 @@
 }
 
 @layer base {
+  html {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
   body {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
     background-color: var(--background);
     color: var(--foreground);
-    @apply font-sans transition-colors duration-300 min-h-screen text-body;
+    @apply font-sans transition-colors duration-300 text-body;
+  }
+
+  #root {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   h1, h2, h3, h4, h5, h6 {

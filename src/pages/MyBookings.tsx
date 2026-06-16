@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Clock, CheckCircle2, XCircle, Calendar, CreditCard, Star, MessageSquare, Send, X, MapPin, ChevronLeft, ChevronRight, Hash } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Calendar, CreditCard, Star, MessageSquare, Send, X, MapPin, ChevronLeft, ChevronRight, Hash, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { collection, query, where, doc, updateDoc, addDoc, serverTimestamp, getDocs, getDoc } from 'firebase/firestore';
@@ -39,6 +39,14 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
+
+  const handleBack = () => {
+    if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedBookingDetails, setSelectedBookingDetails] = useState<any | null>(null);
@@ -222,8 +230,15 @@ export default function MyBookings() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
-      <div className="absolute top-0 right-0 z-50">
+    <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
+      <div className="flex items-center justify-between z-10">
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-secondary text-[10px] font-black uppercase tracking-[0.2em] text-heading hover:bg-neutral-50 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
+        >
+          <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" strokeWidth={2.5} />
+          <span>Back</span>
+        </button>
         <RefreshButton onRefresh={handleRefresh} />
       </div>
       

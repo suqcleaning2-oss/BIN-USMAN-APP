@@ -31,6 +31,14 @@ export default function BookingConfirmation() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleBack = () => {
+    if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -518,17 +526,17 @@ export default function BookingConfirmation() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
-      <div className="absolute top-0 right-0 z-50">
+    <div className="max-w-4xl mx-auto space-y-10 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+      <div className="flex items-center justify-between z-10">
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-secondary text-[10px] font-black uppercase tracking-[0.2em] text-heading hover:bg-neutral-50 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
+        >
+          <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" strokeWidth={2.5} />
+          <span>Back</span>
+        </button>
         <RefreshButton onRefresh={handleRefresh} />
       </div>
-      <button 
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-body/60 hover:text-heading transition-colors group font-bold text-sm uppercase tracking-widest"
-      >
-        <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-        Back
-      </button>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Left: Summary */}

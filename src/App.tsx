@@ -22,23 +22,23 @@ import Footer from './components/Footer';
 
 const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen flex items-center justify-center">Loading...</div>;
+  if (loading) return <div className="min-h-[60vh] w-full flex items-center justify-center">Loading...</div>;
   if (!user) return <Navigate to="/login" />;
   return <>{children}</>;
 };
 
 const AdminGuard = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen flex items-center justify-center">Loading...</div>;
+  if (loading) return <div className="min-h-[60vh] w-full flex items-center justify-center">Loading...</div>;
   if (!isAdmin) return <Navigate to="/" />;
   return <>{children}</>;
 };
 
 function AppRoutes() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col w-full overflow-y-auto -webkit-overflow-scrolling-touch touch-auto">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
