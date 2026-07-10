@@ -31,11 +31,7 @@ export default function Home() {
     try {
       const listingsPath = 'listings';
       const listingsRef = collection(db, listingsPath);
-      let q = query(listingsRef);
-      
-      if (selectedCity !== 'All') {
-        q = query(listingsRef, where('city', '==', selectedCity));
-      }
+      const q = query(listingsRef);
 
       let snapshot;
       try {
@@ -58,17 +54,33 @@ export default function Home() {
 
   useEffect(() => {
     fetchListings();
-  }, [selectedCity]);
+  }, []);
 
   const handleRefresh = async () => {
     await fetchListings();
   };
 
-  const filteredListings = listings.filter(l => 
-    (l.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (l.location?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (l.city?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const filteredListings = listings.filter(l => {
+    // City Filter (Case-insensitive & trimmed)
+    if (selectedCity !== 'All') {
+      const listingCity = (l.city || '').trim().toLowerCase();
+      const targetCity = selectedCity.trim().toLowerCase();
+      if (listingCity !== targetCity) {
+        return false;
+      }
+    }
+
+    // Search Term Filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const titleMatch = (l.title || '').toLowerCase().includes(term);
+      const locationMatch = (l.location || '').toLowerCase().includes(term);
+      const cityMatch = (l.city || '').toLowerCase().includes(term);
+      return titleMatch || locationMatch || cityMatch;
+    }
+
+    return true;
+  });
 
   return (
     <div className="space-y-8 relative">
