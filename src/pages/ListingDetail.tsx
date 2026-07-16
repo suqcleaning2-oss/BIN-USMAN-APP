@@ -11,6 +11,8 @@ import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { updateListingRating } from '../services/listingService';
 import 'react-day-picker/dist/style.css';
 import { RefreshButton } from '../components/RefreshButton';
+import OptimizedImage from '../components/OptimizedImage';
+import { safeOpenExternalApp, useScrollRestoration } from '../lib/lifecycle-utils';
 
 interface Listing {
   id: string;
@@ -83,6 +85,8 @@ export default function ListingDetail() {
   const [blockedDates, setBlockedDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  useScrollRestoration(`/listing/${id}`, !loading);
 
   // Write a Review States
   const [newReviewRating, setNewReviewRating] = useState(5);
@@ -380,11 +384,12 @@ export default function ListingDetail() {
                   onTouchEnd={handleTouchEnd}
                   className="rounded-[2.5rem] overflow-hidden aspect-video border border-secondary shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative group select-none"
                 >
-                  <img 
+                  <OptimizedImage 
                     src={currentImage} 
                     alt={listing.title} 
+                    widthSize={1000}
+                    qualitySize={80}
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-103"
-                    referrerPolicy="no-referrer"
                   />
                   
                   {/* Badge Label */}
@@ -459,11 +464,12 @@ export default function ListingDetail() {
                             isActive ? 'border-primary-dark scale-95 ring-2 ring-primary-dark/20' : 'border-secondary/60 hover:border-body/30'
                           }`}
                         >
-                          <img 
+                          <OptimizedImage 
                             src={img} 
                             alt={`${listing.title} ${i+1}`} 
+                            widthSize={150}
+                            qualitySize={60}
                             className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
-                            referrerPolicy="no-referrer" 
                           />
                         </div>
                       );
@@ -502,7 +508,7 @@ export default function ListingDetail() {
               </div>
               {listing.latitude && listing.longitude && (
                 <button 
-                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${listing.latitude},${listing.longitude}`, '_blank')}
+                  onClick={() => safeOpenExternalApp(`https://www.google.com/maps/search/?api=1&query=${listing.latitude},${listing.longitude}`)}
                   className="w-fit flex items-center gap-2 text-[10px] font-black text-primary-dark uppercase tracking-widest hover:underline transition-all"
                 >
                   View on Map

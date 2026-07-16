@@ -5,6 +5,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { RefreshButton } from '../components/RefreshButton';
+import { usePersistentState, useScrollRestoration } from '../lib/lifecycle-utils';
 
 interface Listing {
   id: string;
@@ -23,8 +24,11 @@ const PAKISTAN_CITIES = [
 export default function Home() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCity, setSelectedCity] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCity, setSelectedCity] = usePersistentState('binusman_home_selected_city', 'All');
+  const [searchTerm, setSearchTerm] = usePersistentState('binusman_home_search_term', '');
+  const [displayLimit, setDisplayLimit] = useState(8); // Render only 8 initially for ultra-fast startup and scrolling
+
+  useScrollRestoration('/', !loading);
 
   const fetchListings = async () => {
     setLoading(true);
@@ -60,27 +64,83 @@ export default function Home() {
     await fetchListings();
   };
 
-  const filteredListings = listings.filter(l => {
-    // City Filter (Case-insensitive & trimmed)
-    if (selectedCity !== 'All') {
-      const listingCity = (l.city || '').trim().toLowerCase();
-      const targetCity = selectedCity.trim().toLowerCase();
-      if (listingCity !== targetCity) {
-        return false;
+  // Memoize listings filtering to eliminate redundant computations on rebuilds / typing
+  const filteredListings = React.useMemo(() => {
+    return listings.filter(l => {
+      // City Filter (Case-insensitive & trimmed)
+      if (selectedCity !== 'All') {
+        const listingCity = (l.city || '').trim().toLowerCase();
+        const targetCity = selectedCity.trim().toLowerCase();
+        if (listingCity !== targetCity) {
+          return false;
+        }
       }
+
+      // Search Term Filter
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const titleMatch = (l.title || '').toLowerCase().includes(term);
+        const locationMatch = (l.location || '').toLowerCase().includes(term);
+        const cityMatch = (l.city || '').toLowerCase().includes(term);
+        return titleMatch || locationMatch || cityMatch;
+      }
+
+      return true;
+    });
+  }, [listings, selectedCity, searchTerm]);
+
+  // Reset rendering limit when filters change to preserve scrolling memory and speed
+  useEffect(() => {
+    setDisplayLimit(8);
+  }, [selectedCity, searchTerm]);
+
+  const listingsToRender = filteredListings.slice(0, displayLimit);
+  const hasMore = filteredListings.length > displayLimit;
+
+  // Set up high-performance infinite scroll observer for rendering
+  useEffect(() => {
+    if (!hasMore) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        // Increment limit dynamically in the background
+        setDisplayLimit((prev) => Math.min(prev + 8, filteredListings.length));
+      }
+    }, { threshold: 0.1, rootMargin: '200px' }); // Trigger ahead by 200px to ensure seamless scroll transition
+
+    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    if (sentinel) {
+      observer.observe(sentinel);
     }
 
-    // Search Term Filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const titleMatch = (l.title || '').toLowerCase().includes(term);
-      const locationMatch = (l.location || '').toLowerCase().includes(term);
-      const cityMatch = (l.city || '').toLowerCase().includes(term);
-      return titleMatch || locationMatch || cityMatch;
-    }
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, filteredListings.length]);
 
-    return true;
-  });
+  // Premium skeleton loader matching ListingCard dimensions
+  const renderSkeletons = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {Array.from({ length: 8 }).map((_, idx) => (
+        <div 
+          key={idx} 
+          className="overflow-hidden border border-[#E5E5E5] bg-white rounded-[2.5rem] shadow-subtle animate-pulse"
+        >
+          <div className="relative aspect-[4/5] bg-neutral-200 rounded-t-[2.5rem]" />
+          <div className="p-8 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="h-3 w-16 bg-neutral-200 rounded-full" />
+              <div className="h-3 w-20 bg-neutral-200 rounded-full" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-5 w-3/4 bg-neutral-200 rounded-lg" />
+              <div className="h-3.5 w-1/2 bg-neutral-200 rounded-md" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-8 relative">
@@ -180,15 +240,21 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 glass-card border-dashed gap-4 bg-white/40">
-            <Loader2 className="w-10 h-10 text-primary animate-spin" />
-            <p className="text-body font-black tracking-widest text-xs uppercase animate-pulse">Loading...</p>
-          </div>
-        ) : filteredListings.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-700">
-            {filteredListings.map(listing => (
-              <ListingCard key={listing.id} {...listing} />
-            ))}
+          renderSkeletons()
+        ) : listingsToRender.length > 0 ? (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-700">
+              {listingsToRender.map(listing => (
+                <ListingCard key={listing.id} {...listing} />
+              ))}
+            </div>
+
+            {/* Hidden Sentinel to trigger smooth background infinite scrolling */}
+            {hasMore && (
+              <div id="infinite-scroll-sentinel" className="py-6 flex justify-center">
+                <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-20 glass-card border-dashed bg-white/40">

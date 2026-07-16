@@ -66,9 +66,44 @@ export default function MyWishlist() {
   }, [user]);
 
   if (loading) return (
-    <div className="h-96 flex flex-col items-center justify-center gap-6">
-      <div className="w-12 h-px bg-secondary animate-pulse" />
-      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-body/30">Loading...</span>
+    <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
+      <div className="flex items-center justify-between z-10">
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-secondary text-[10px] font-black uppercase tracking-[0.2em] text-heading hover:bg-neutral-50 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
+        >
+          <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" strokeWidth={2.5} />
+          <span>Back</span>
+        </button>
+      </div>
+      
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-secondary pb-10">
+        <div className="space-y-4">
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tighter uppercase text-heading leading-none">My <span className="text-primary-dark italic font-normal">Wishlist</span></h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-body/30 max-w-xs">Your saved apartments.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {Array.from({ length: 3 }).map((_, idx) => (
+          <div 
+            key={idx} 
+            className="overflow-hidden border border-[#E5E5E5] bg-white rounded-[2.5rem] shadow-subtle animate-pulse"
+          >
+            <div className="relative aspect-[4/5] bg-neutral-200 rounded-t-[2.5rem]" />
+            <div className="p-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="h-3 w-16 bg-neutral-200 rounded-full" />
+                <div className="h-3 w-20 bg-neutral-200 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-5 w-3/4 bg-neutral-200 rounded-lg" />
+                <div className="h-3.5 w-1/2 bg-neutral-200 rounded-md" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 

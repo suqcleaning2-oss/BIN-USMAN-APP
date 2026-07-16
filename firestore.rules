@@ -121,5 +121,18 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidWishlist(request.resource.data);
       allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isDbAdmin());
     }
+
+    // Lister Applications Collection
+    match /lister_applications/{applicationId} {
+      allow create: if true;
+      allow read, get, list, update, delete: if isDbAdmin();
+    }
+
+    // App Content Collection (Privacy Policy, Terms, About, Contact)
+    match /app_content/{documentId} {
+      allow read, get, list: if true;
+      allow create: if true;
+      allow update, delete: if isDbAdmin();
+    }
   }
 }

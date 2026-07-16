@@ -301,7 +301,7 @@ export default function Register() {
               required
             />
             <label htmlFor="privacy-policy" className="text-[10px] font-black uppercase tracking-wider text-body/40 cursor-pointer select-none">
-              I agree to the <a href="https://binusmen.wordpress.com" target="_blank" rel="noopener noreferrer" className="text-primary-dark hover:underline underline-offset-4 transition-all">Privacy Policy</a>
+              I agree to the <Link to="/privacy-policy" className="text-primary-dark hover:underline underline-offset-4 transition-all">Privacy Policy</Link> and <Link to="/terms-conditions" className="text-primary-dark hover:underline underline-offset-4 transition-all">Terms & Conditions</Link>
             </label>
           </div>
           

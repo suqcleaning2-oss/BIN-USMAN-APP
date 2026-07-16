@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDocFromServer } from "firebase/firestore";
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize Firebase
@@ -17,10 +17,18 @@ setPersistence(auth, browserLocalPersistence)
     console.error("Error setting Firebase local persistence:", err);
   });
 
+// Configure offline local cache for Firestore to enable instantaneous data retrieval and minimize network usage
+const firestoreSettings = {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+};
+
 export const db = (firebaseConfig as any).firestoreDatabaseId 
-  ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
-  : getFirestore(app);
-console.log("Firestore initialized for database:", (firebaseConfig as any).firestoreDatabaseId || "(default)");
+  ? initializeFirestore(app, firestoreSettings, (firebaseConfig as any).firestoreDatabaseId)
+  : initializeFirestore(app, firestoreSettings);
+
+console.log("Firestore initialized with persistent local cache for database:", (firebaseConfig as any).firestoreDatabaseId || "(default)");
 export const storage = null as any;
 
 // Validate Connection to Firestore

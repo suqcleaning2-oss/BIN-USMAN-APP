@@ -8,6 +8,8 @@ import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { RefreshButton } from '../components/RefreshButton';
 import { useNavigate } from 'react-router-dom';
+import OptimizedImage from '../components/OptimizedImage';
+import { safeOpenExternalApp, useScrollRestoration } from '../lib/lifecycle-utils';
 
 interface Booking {
   id: string;
@@ -39,6 +41,8 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
+
+  useScrollRestoration('/my-bookings', !loading);
 
   const handleBack = () => {
     if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
@@ -223,9 +227,51 @@ export default function MyBookings() {
   }
 
   if (loading) return (
-    <div className="h-96 flex flex-col items-center justify-center gap-6">
-      <div className="w-12 h-px bg-secondary animate-pulse" />
-      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-body/30">Loading...</span>
+    <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
+      <div className="flex items-center justify-between z-10">
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-secondary text-[10px] font-black uppercase tracking-[0.2em] text-heading hover:bg-neutral-50 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
+        >
+          <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" strokeWidth={2.5} />
+          <span>Back</span>
+        </button>
+      </div>
+      
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-secondary pb-10">
+        <div className="space-y-4">
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tighter uppercase text-heading leading-none">My <span className="text-primary-dark italic font-normal">Bookings</span></h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-body/30 max-w-xs">Your past and upcoming stays.</p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {Array.from({ length: 2 }).map((_, idx) => (
+          <div key={idx} className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-secondary overflow-hidden animate-pulse">
+            <div className="p-5 sm:p-10 space-y-6 sm:space-y-10">
+              <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6">
+                <div className="space-y-3 flex-1">
+                  <div className="h-7 w-2/3 bg-neutral-200 rounded-lg" />
+                  <div className="h-4 w-1/3 bg-neutral-200 rounded-md" />
+                  <div className="h-4 w-1/4 bg-neutral-200 rounded-md" />
+                </div>
+                <div className="h-16 w-48 bg-neutral-100 rounded-2xl" />
+              </div>
+              <div className="h-px bg-neutral-200" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-neutral-200 rounded-xl" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-16 bg-neutral-200 rounded-full" />
+                    <div className="h-5 w-24 bg-neutral-200 rounded-lg" />
+                  </div>
+                </div>
+                <div className="h-11 w-28 bg-neutral-200 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -289,7 +335,7 @@ export default function MyBookings() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (booking.latitude && booking.longitude) {
-                                  window.open(`https://www.google.com/maps?q=${booking.latitude},${booking.longitude}`, '_blank');
+                                  safeOpenExternalApp(`https://www.google.com/maps?q=${booking.latitude},${booking.longitude}`);
                                 } else {
                                   toast.error("Location not available");
                                 }
@@ -469,11 +515,12 @@ export default function MyBookings() {
                         return (
                           <div className="space-y-3 animate-in fade-in duration-500">
                             <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-150 shadow-subtle group">
-                              <img 
+                              <OptimizedImage 
                                 src={photos[activeImageIndex]} 
                                 alt={`${selectedBooking.listingTitle} photo ${activeImageIndex + 1}`}
+                                widthSize={600}
+                                qualitySize={75}
                                 className="w-full h-full object-cover select-none"
-                                referrerPolicy="no-referrer"
                               />
                               {photos.length > 1 && (
                                 <>
@@ -504,7 +551,7 @@ export default function MyBookings() {
                                   onClick={() => setActiveImageIndex(idx)}
                                   className={`relative w-12 h-12 rounded-lg overflow-hidden shrink-0 transition-all border-2 cursor-pointer ${idx === activeImageIndex ? 'border-[#D4AF37] scale-95 shadow-sm' : 'border-transparent opacity-60 hover:opacity-100'}`}
                                 >
-                                  <img src={img} alt="thumbnail" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  <OptimizedImage src={img} alt="thumbnail" widthSize={120} qualitySize={60} className="w-full h-full object-cover" />
                                 </button>
                               ))}
                             </div>
@@ -670,7 +717,7 @@ export default function MyBookings() {
               <div className="flex flex-col sm:flex-row gap-3">
                 {selectedBooking.latitude && selectedBooking.longitude && (
                   <button 
-                    onClick={() => window.open(`https://www.google.com/maps?q=${selectedBooking.latitude},${selectedBooking.longitude}`, '_blank')}
+                    onClick={() => safeOpenExternalApp(`https://www.google.com/maps?q=${selectedBooking.latitude},${selectedBooking.longitude}`)}
                     className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-neutral-100 hover:bg-neutral-200 hover:text-neutral-900 border border-neutral-200 text-neutral-700 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 cursor-pointer active:scale-95 min-h-[44px]"
                   >
                     <MapPin size={12} />

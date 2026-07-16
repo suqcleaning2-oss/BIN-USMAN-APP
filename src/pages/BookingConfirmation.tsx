@@ -10,6 +10,7 @@ import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { parseISO, areIntervalsOverlapping } from 'date-fns';
 import { RefreshButton } from '../components/RefreshButton';
+import { usePersistentState, useScrollRestoration } from '../lib/lifecycle-utils';
 
 interface Listing {
   id: string;
@@ -42,17 +43,19 @@ export default function BookingConfirmation() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [hostCode, setHostCode] = useState('');
-  const [listingCode, setListingCode] = useState('');
+  const [hostCode, setHostCode] = usePersistentState(`binusman_booking_host_code_${id}`, '');
+  const [listingCode, setListingCode] = usePersistentState(`binusman_booking_listing_code_${id}`, '');
   
   // Custom Date Time and Duration State
-  const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [startTime, setStartTime] = useState('10:00');
-  const [durationType, setDurationType] = useState<'12h' | '24h'>('12h');
+  const [selectedDates, setSelectedDates] = usePersistentState<string[]>(`binusman_booking_dates_${id}`, []);
+  const [startTime, setStartTime] = usePersistentState(`binusman_booking_start_time_${id}`, '10:00');
+  const [durationType, setDurationType] = usePersistentState<'12h' | '24h'>(`binusman_booking_duration_${id}`, '12h');
   const [newDateInput, setNewDateInput] = useState('');
   const [adminBlockedDates, setAdminBlockedDates] = useState<string[]>([]);
   const [reservedDates, setReservedDates] = useState<string[]>([]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+
+  useScrollRestoration(`/booking/${id}`, !loading);
 
   // Get booking details from navigation state
   const bookingData = location.state || {
@@ -64,6 +67,9 @@ export default function BookingConfirmation() {
 
   // Populate selectedDates dynamically based on initial checkIn/checkOut transition
   useEffect(() => {
+    // If we already have stored/restored dates, do not override them!
+    if (selectedDates && selectedDates.length > 0) return;
+
     if (bookingData?.checkIn) {
       const dates: string[] = [];
       const start = new Date(bookingData.checkIn);
@@ -84,7 +90,7 @@ export default function BookingConfirmation() {
     } else {
       setSelectedDates([format(new Date(), 'yyyy-MM-dd')]);
     }
-  }, [bookingData?.checkIn, bookingData?.checkOut]);
+  }, [bookingData?.checkIn, bookingData?.checkOut, id]);
 
   // Enforce single date restriction for 12h duration
   useEffect(() => {

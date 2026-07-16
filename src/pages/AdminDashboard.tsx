@@ -30,11 +30,25 @@ interface Listing {
   location: string;
 }
 
+interface ListerApplication {
+  id: string;
+  fullName: string;
+  contactNumber: string;
+  email: string;
+  totalProperties: number;
+  price: number;
+  city: string;
+  description?: string;
+  status: 'pending' | 'reviewed' | 'approved' | 'rejected';
+  createdAt: any;
+}
+
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'bookings' | 'listings' | 'users'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'listings' | 'users' | 'applications'>('bookings');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
+  const [applications, setApplications] = useState<ListerApplication[]>([]);
   const [counts, setCounts] = useState({ users: 1, revenue: 0 });
   const [loading, setLoading] = useState(false);
 
@@ -87,6 +101,21 @@ export default function AdminDashboard() {
         return timeA - timeB;
       });
       setUsersList(usersData);
+      
+      // 5. Fetch lister applications
+      const appsPath = 'lister_applications';
+      let appsSnap;
+      try {
+        const appsQuery = query(collection(db, appsPath), orderBy('createdAt', 'desc'));
+        appsSnap = await getDocs(appsQuery);
+      } catch (err) {
+        console.warn("Lister applications might not have any records or collection is empty:", err);
+      }
+      
+      const appsData = appsSnap 
+        ? appsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ListerApplication)) 
+        : [];
+      setApplications(appsData);
 
       setCounts({
         users: usersSnap ? usersSnap.size : 0,
@@ -126,6 +155,18 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error(error);
       toast.error("Failed to update status.");
+    }
+  };
+
+  const handleUpdateAppStatus = async (id: string, status: 'approved' | 'rejected' | 'reviewed') => {
+    try {
+      const docRef = doc(db, 'lister_applications', id);
+      await updateDoc(docRef, { status });
+      toast.success(`Application marked as ${status}!`);
+      setApplications(prev => prev.map(app => app.id === id ? { ...app, status } : app));
+    } catch (error) {
+      console.error("Error updating application status:", error);
+      toast.error("Failed to update application status.");
     }
   };
 
@@ -229,6 +270,12 @@ export default function AdminDashboard() {
           className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${activeTab === 'users' ? 'bg-primary-dark text-white shadow-xl' : 'text-body/40 hover:text-heading'}`}
         >
           Users
+        </button>
+        <button 
+          onClick={() => setActiveTab('applications')}
+          className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${activeTab === 'applications' ? 'bg-primary-dark text-white shadow-xl' : 'text-body/40 hover:text-heading'}`}
+        >
+          Applications
         </button>
       </div>
 
@@ -464,16 +511,140 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {activeTab === 'applications' && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="overflow-hidden rounded-[2.5rem] border border-secondary shadow-2xl bg-white">
+            <table className="w-full text-left">
+              <thead className="bg-background border-b border-secondary">
+                <tr>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">Lister Profile</th>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">Properties & Expected Price</th>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">City</th>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">Description</th>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">Status</th>
+                  <th className="px-10 py-6 text-[9px] uppercase font-black tracking-[0.2em] text-body/40">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-secondary/50">
+                {applications.map((app) => (
+                  <tr key={app.id} className="hover:bg-background transition-colors group">
+                    <td className="px-10 py-8">
+                      <div className="space-y-1">
+                        <span className="font-semibold text-heading text-lg uppercase tracking-tight block">
+                          {app.fullName}
+                        </span>
+                        <div className="flex flex-col gap-0.5 text-[11px] text-body/60 font-medium">
+                          <span className="lowercase">{app.email}</span>
+                          <span className="text-primary-dark font-black tracking-wide">{app.contactNumber}</span>
+                        </div>
+                        <span className="text-[9px] text-primary-dark/40 font-black tracking-widest uppercase block pt-1">
+                          {(() => {
+                            if (app.createdAt?.seconds) {
+                              try {
+                                return format(new Date(app.createdAt.seconds * 1000), 'p, PPP');
+                              } catch (e) {
+                                return 'Recent';
+                              }
+                            }
+                            if (typeof app.createdAt === 'string') {
+                              try {
+                                const d = new Date(app.createdAt);
+                                return isNaN(d.getTime()) ? 'Recent' : format(d, 'p, PPP');
+                              } catch (e) {
+                                return 'Recent';
+                              }
+                            }
+                            return 'Just now';
+                          })()}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-10 py-8">
+                      <div className="space-y-1">
+                        <p className="text-heading font-semibold text-base">
+                          {app.totalProperties} {app.totalProperties === 1 ? 'Property' : 'Properties'}
+                        </p>
+                        <p className="text-[11px] text-body/60">
+                          Expected Price: <span className="font-bold text-heading">Rs. {app.price.toLocaleString()}</span>
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-10 py-8">
+                      <span className="px-4 py-2 bg-neutral-100 rounded-full text-[10px] font-black uppercase tracking-widest text-heading border border-secondary shadow-sm">
+                        {app.city}
+                      </span>
+                    </td>
+                    <td className="px-10 py-8 max-w-[240px]">
+                      <p className="text-xs text-body font-medium leading-relaxed line-clamp-3 italic">
+                        {app.description || <span className="text-body/20 not-italic">No description provided</span>}
+                      </p>
+                    </td>
+                    <td className="px-10 py-8">
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.15em] border shadow-sm ${
+                        app.status === 'approved' ? 'bg-green-50 text-green-600 border-green-100' :
+                        app.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-100' :
+                        app.status === 'reviewed' ? 'bg-[#FFFDF0] text-[#D4AF37] border-[#D4AF37]/20' :
+                        'bg-primary/5 text-primary-dark border-primary/20 animate-pulse'
+                      }`}>
+                        {app.status}
+                      </span>
+                    </td>
+                    <td className="px-10 py-8">
+                      <div className="flex gap-2">
+                        {app.status === 'pending' ? (
+                          <>
+                            <button 
+                              onClick={() => handleUpdateAppStatus(app.id, 'approved')}
+                              className="w-9 h-9 bg-white text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition-all border border-secondary shadow-sm flex items-center justify-center"
+                              title="Approve"
+                            >
+                              <Check size={16} strokeWidth={2.5} />
+                            </button>
+                            <button 
+                              onClick={() => handleUpdateAppStatus(app.id, 'rejected')}
+                              className="w-9 h-9 bg-white text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-secondary shadow-sm flex items-center justify-center"
+                              title="Reject"
+                            >
+                              <X size={16} strokeWidth={2.5} />
+                            </button>
+                            <button 
+                              onClick={() => handleUpdateAppStatus(app.id, 'reviewed')}
+                              className="px-3 py-1.5 bg-white text-heading hover:bg-[#D4AF37] hover:text-[#111111] rounded-xl transition-all border border-secondary text-[8px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center"
+                              title="Mark as Reviewed"
+                            >
+                              Review
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-[9px] text-body/30 font-black uppercase tracking-widest">
+                            Processed
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {applications.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-20 text-body/40 font-black uppercase text-xs tracking-widest">
+                      No lister applications submitted yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       
       <div className="pt-20 text-center">
-        <a 
-          href="https://binusmen.wordpress.com" 
-          target="_blank" 
-          rel="noopener noreferrer"
+        <Link 
+          to="/privacy-policy" 
           className="text-[10px] font-black uppercase tracking-[0.2em] text-body/20 hover:text-primary-dark transition-all duration-300"
         >
           Privacy Policy
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -16,7 +16,12 @@ import {
   LogIn,
   UserPlus,
   ArrowRight,
-  Heart
+  Heart,
+  Building,
+  Compass,
+  Shield,
+  Scale,
+  Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -48,6 +53,7 @@ export default function Navbar() {
 
   const menuItems = [
     { name: 'Home', path: '/', icon: Layers },
+    { name: 'List Your Property', path: '/list-property', icon: Building },
     ...(user ? [
       { name: 'My Wishlist', path: '/my-wishlist', icon: Heart },
       { name: 'My Bookings', path: '/my-bookings', icon: Calendar },
@@ -55,7 +61,11 @@ export default function Navbar() {
     ] : [
       { name: 'Login', path: '/login', icon: LogIn },
       { name: 'Sign Up', path: '/register', icon: UserPlus },
-    ])
+    ]),
+    { name: 'About Us', path: '/about-us', icon: Compass },
+    { name: 'Privacy Policy', path: '/privacy-policy', icon: Shield },
+    { name: 'Terms & Conditions', path: '/terms-conditions', icon: Scale },
+    { name: 'Contact Us', path: '/contact-us', icon: Mail }
   ];
 
   return (
@@ -95,6 +105,13 @@ export default function Navbar() {
           </Link>
 
           <div className="ml-auto hidden md:flex items-center gap-4">
+             <Link 
+               to="/list-property" 
+               className="px-6 py-2.5 rounded-full bg-[#D4AF37] text-[#111111] hover:bg-white hover:text-primary-dark font-black text-[10px] uppercase tracking-widest transition-all duration-300 shadow-lg active:scale-95 inline-flex items-center gap-2"
+             >
+               <Building size={12} strokeWidth={2.5} />
+               <span>List Your Property</span>
+             </Link>
              {user && (
                <div className="flex items-center gap-3 px-4 py-2 bg-white/10 rounded-full border border-white/10">
                  <div className="w-8 h-8 rounded-full bg-[#D4AF37] text-[#111111] flex items-center justify-center text-[10px] font-black uppercase">
@@ -142,7 +159,7 @@ export default function Navbar() {
                 </button>
               </div>
 
-              <div className="space-y-4 flex-1">
+              <div className="space-y-4 flex-1 overflow-y-auto pr-2">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;

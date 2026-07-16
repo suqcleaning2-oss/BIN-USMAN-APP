@@ -15,10 +15,17 @@ import PaymentStatus from './pages/PaymentStatus';
 import MyWishlist from './pages/MyWishlist';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminListingEditor from './pages/AdminListingEditor';
+import ListProperty from './pages/ListProperty';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
+import AboutUs from './pages/AboutUs';
+import ContactUs from './pages/ContactUs';
 
 // Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
+import NavigationStateRestorer from './components/NavigationStateRestorer';
 
 const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -51,6 +58,11 @@ function AppRoutes() {
           <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
           <Route path="/admin/listing/new" element={<AdminGuard><AdminListingEditor /></AdminGuard>} />
           <Route path="/admin/listing/edit/:id" element={<AdminGuard><AdminListingEditor /></AdminGuard>} />
+          <Route path="/list-property" element={<ListProperty />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-conditions" element={<TermsConditions />} />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/contact-us" element={<ContactUs />} />
         </Routes>
       </main>
       <Footer />
@@ -61,12 +73,15 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <Router>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </ThemeProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <NavigationStateRestorer />
+        <ThemeProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </ThemeProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }

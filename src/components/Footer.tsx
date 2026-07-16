@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
@@ -15,16 +15,31 @@ export default function Footer() {
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-8">
-            <a 
-              href="https://binusmen.wordpress.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
+          <div className="flex flex-wrap justify-center gap-6 md:gap-8 items-center text-center">
+            <Link 
+              to="/about-us" 
+              className="text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
+            >
+              About Us
+            </Link>
+            <Link 
+              to="/contact-us" 
+              className="text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
+            >
+              Contact Us
+            </Link>
+            <Link 
+              to="/privacy-policy" 
+              className="text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
             >
               Privacy Policy
-              <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-all -translate-y-0.5" />
-            </a>
+            </Link>
+            <Link 
+              to="/terms-conditions" 
+              className="text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
+            >
+              Terms & Conditions
+            </Link>
             <span className="text-[10px] font-black uppercase tracking-widest text-body/10 select-none">
               &copy; {new Date().getFullYear()} BIN USMAN
             </span>

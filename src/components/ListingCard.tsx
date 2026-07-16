@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getWishlistStatus, addToWishlist, removeFromWishlist } from '../services/wishlistService';
 import { toast } from 'sonner';
+import OptimizedImage from './OptimizedImage';
 
 interface ListingProps {
   id: string;
@@ -65,11 +66,12 @@ export default function ListingCard({ id, title, price, location, locationName, 
     >
       <Link to={`/listing/${id}`}>
         <div className="relative aspect-[4/5] overflow-hidden rounded-t-[2.5rem]">
-          <img 
+          <OptimizedImage 
             src={(images && images.length > 0) ? images[0] : 'https://picsum.photos/seed/house/800/600'} 
             alt={title}
+            widthSize={500}
+            qualitySize={70}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-            referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           
