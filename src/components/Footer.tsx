@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
-    <footer className="border-t border-secondary bg-white py-12 mt-20">
+    <footer className="border-t border-secondary dark:border-zinc-800 bg-white dark:bg-[#07090E] py-12 mt-20 transition-all duration-500">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="space-y-2 text-center md:text-left">

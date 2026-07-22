@@ -83,6 +83,17 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "listingId", "createdAt"]
+    },
+    "LoginAttempt": {
+      "title": "Login Attempt Tracker",
+      "description": "Lockout mechanism for enterprise security",
+      "type": "object",
+      "properties": {
+        "attempts": { "type": "number" },
+        "lockedUntil": { "type": "string", "format": "date-time" },
+        "lastAttemptAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["attempts"]
     }
   },
   "firestore": {
@@ -105,6 +116,10 @@
     "/wishlists/{wishlistId}": {
       "schema": "Wishlist",
       "description": "User's favorite listings"
+    },
+    "/login_attempts/{emailId}": {
+      "schema": "LoginAttempt",
+      "description": "Failed login attempts tracking"
     }
   }
 }

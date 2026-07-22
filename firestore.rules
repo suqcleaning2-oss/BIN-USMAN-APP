@@ -128,6 +128,11 @@ service cloud.firestore {
       allow read, get, list, update, delete: if isDbAdmin();
     }
 
+    // Login Attempts Collection
+    match /login_attempts/{emailId} {
+      allow read, create, update: if true;
+    }
+
     // App Content Collection (Privacy Policy, Terms, About, Contact)
     match /app_content/{documentId} {
       allow read, get, list: if true;

@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { RefreshButton } from '../components/RefreshButton';
 import { usePersistentState, useScrollRestoration } from '../lib/lifecycle-utils';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Listing {
   id: string;
@@ -22,6 +23,8 @@ const PAKISTAN_CITIES = [
 ];
 
 export default function Home() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCity, setSelectedCity] = usePersistentState('binusman_home_selected_city', 'All');
@@ -149,7 +152,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <div className="relative rounded-[2.5rem] overflow-hidden min-h-[460px] md:h-[500px] py-10 flex flex-col justify-center items-center text-center p-6 bg-[#F3F0E9] border border-secondary/50 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
+      <div className={`relative rounded-[2.5rem] overflow-hidden min-h-[460px] md:h-[500px] py-10 flex flex-col justify-center items-center text-center p-6 border transition-all duration-500 ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-[#F3F0E9] border-secondary/50'} shadow-[0_10px_40px_rgba(0,0,0,0.02)]`}>
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
           <div className="h-full w-full" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '60px 60px' }} />
         </div>
@@ -164,14 +167,14 @@ export default function Home() {
           <h1 
             id="best-hotels-apartments-heading"
             style={{
-              borderColor: '#E5E5E5',
+              borderColor: isDark ? '#27272a' : '#E5E5E5',
               borderStyle: 'solid',
               borderWidth: '1px',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: isDark ? '#18181b' : '#FFFFFF',
               textAlign: 'center',
               fontWeight: '800',
               fontFamily: '"Poppins", "Montserrat", sans-serif',
-              color: '#000033',
+              color: isDark ? '#ffffff' : '#000033',
               minHeight: '140px',
               height: 'auto',
               display: 'flex',
@@ -196,7 +199,7 @@ export default function Home() {
             <input 
               type="text"
               placeholder="Search by city or area..."
-              className="w-full bg-white border border-secondary rounded-2xl py-4 pl-14 pr-4 focus:outline-none focus:border-primary-dark focus:ring-4 focus:ring-primary/10 transition-all text-heading placeholder:text-body/20 font-medium text-sm"
+              className={`w-full ${isDark ? 'bg-zinc-950 border-zinc-800 text-white focus:ring-primary-dark/20' : 'bg-white border-secondary text-heading focus:ring-primary/10'} border rounded-2xl py-4 pl-14 pr-4 focus:outline-none focus:border-primary-dark focus:ring-4 transition-all font-medium text-sm`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -223,7 +226,9 @@ export default function Home() {
                 flex items-center gap-2 px-8 py-3.5 rounded-full whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all snap-start
                 ${selectedCity === city 
                   ? 'bg-primary-dark text-neutral-900 font-bold shadow-xl shadow-primary-dark/10 ring-4 ring-primary-dark/5' 
-                  : 'bg-white text-body/40 border border-secondary hover:border-primary-dark/30 hover:text-heading'}
+                  : isDark
+                    ? 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-primary-dark/30 hover:text-white'
+                    : 'bg-white text-body/40 border border-secondary hover:border-primary-dark/30 hover:text-heading'}
               `}
             >
               {city}

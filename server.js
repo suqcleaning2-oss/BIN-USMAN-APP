@@ -74,8 +74,8 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // Smart checking of production vs development mode
-  const isProduction = fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'));
+  // Check of production vs development mode
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (!isProduction) {
     console.log("Starting server in development mode with Vite middleware...");
@@ -89,7 +89,14 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      res.sendFile(path.join(distPath, 'index.html'), (err) => {
+        if (err) {
+          console.error("Error sending index.html:", err);
+          if (!res.headersSent) {
+            res.status(503).send("Application is starting up or building. Please reload in a few seconds.");
+          }
+        }
+      });
     });
   }
 

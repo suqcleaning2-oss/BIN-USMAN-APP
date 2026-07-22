@@ -5,7 +5,15 @@ import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { toast } from 'sonner';
-import { User, Mail, Lock, ArrowRight, Eye, EyeOff, Phone } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, Eye, EyeOff, Phone, Check, X } from 'lucide-react';
+
+const PASSWORD_REQUIREMENTS = [
+  { id: 'length', label: 'At least 8 characters', test: (pw: string) => pw.length >= 8 },
+  { id: 'uppercase', label: 'One uppercase letter (A-Z)', test: (pw: string) => /[A-Z]/.test(pw) },
+  { id: 'lowercase', label: 'One lowercase letter (a-z)', test: (pw: string) => /[a-z]/.test(pw) },
+  { id: 'number', label: 'One number (0-9)', test: (pw: string) => /[0-9]/.test(pw) },
+  { id: 'special', label: 'One special character (e.g. !@#$%)', test: (pw: string) => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/~`]/.test(pw) }
+];
 
 export default function Register() {
   const [fullName, setFullName] = useState('');
@@ -88,15 +96,9 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters long');
-      setLoading(false);
-      return;
-    }
-
-    const hasUppercase = /[A-Z]/.test(password);
-    if (!hasUppercase) {
-      toast.error('Password must contain at least one uppercase letter');
+    const isPasswordValid = PASSWORD_REQUIREMENTS.every(req => req.test(password));
+    if (!isPasswordValid) {
+      toast.error('The password does not meet all security requirements.');
       setLoading(false);
       return;
     }
@@ -268,15 +270,15 @@ export default function Register() {
             <div className="relative group">
               <div className="flex justify-between items-center mb-2 px-1">
                 <label className="text-[9px] font-black uppercase tracking-widest text-body/30 italic">Security Level: High</label>
-                <label className="text-[9px] font-black uppercase tracking-widest text-primary-dark italic">Req: 1 Upper case</label>
+                <label className="text-[9px] font-black uppercase tracking-widest text-primary-dark italic">Complex Rules</label>
               </div>
               <Lock className="absolute left-5 top-[60%] -translate-y-1/2 text-body/20 group-focus-within:text-primary-dark transition-colors" size={18} />
               <input 
                 type={showPassword ? "text" : "password"}
-                placeholder="Password (min. 6 characters)"
+                placeholder="Password (min. 8 characters)"
                 className="w-full bg-background/30 border border-secondary rounded-2xl pl-14 pr-14 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
                 required
-                minLength={6}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -289,6 +291,25 @@ export default function Register() {
                 {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
               </button>
             </div>
+            
+            {password && (
+              <div className="p-4 bg-background/50 rounded-2xl border border-secondary space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <p className="text-[9px] font-black text-body/40 uppercase tracking-widest">Password Requirements:</p>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {PASSWORD_REQUIREMENTS.map((req) => {
+                    const isMet = req.test(password);
+                    return (
+                      <div key={req.id} className="flex items-center gap-2 text-xs font-semibold">
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${isMet ? 'bg-green-100 text-green-600' : 'bg-red-50 text-red-400'}`}>
+                          {isMet ? <Check size={10} strokeWidth={3} /> : <X size={10} strokeWidth={3} />}
+                        </span>
+                        <span className={isMet ? 'text-green-700/80' : 'text-red-500/80'}>{req.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-3 px-1">

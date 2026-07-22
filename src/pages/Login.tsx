@@ -13,7 +13,87 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [countdownSeconds, setCountdownSeconds] = useState(0);
+  const [lockoutActive, setLockoutActive] = useState(false);
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
   const navigate = useNavigate();
+
+  const checkLockoutStatus = async (targetEmail: string): Promise<boolean> => {
+    if (!targetEmail) return false;
+    const emailId = targetEmail.toLowerCase().trim();
+    try {
+      const docRef = doc(db, 'login_attempts', emailId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const attempts = data.attempts || 0;
+        const lockedUntil = data.lockedUntil?.toMillis ? data.lockedUntil.toMillis() : (data.lockedUntil || 0);
+        
+        const now = Date.now();
+        if (lockedUntil && lockedUntil > now) {
+          const diffSec = Math.ceil((lockedUntil - now) / 1000);
+          setCountdownSeconds(diffSec);
+          setLockoutActive(true);
+          setRemainingAttempts(0);
+          return true; // Is locked
+        } else {
+          setLockoutActive(false);
+          setCountdownSeconds(0);
+          setRemainingAttempts(Math.max(0, 5 - attempts));
+          return false; // Is not locked
+        }
+      } else {
+        setLockoutActive(false);
+        setCountdownSeconds(0);
+        setRemainingAttempts(5);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error checking lockout status:", error);
+      return false;
+    }
+  };
+
+  // Debounced/automatic lockout and attempts check on email typing
+  React.useEffect(() => {
+    if (email) {
+      const delayDebounce = setTimeout(() => {
+        checkLockoutStatus(email);
+      }, 500);
+      return () => clearTimeout(delayDebounce);
+    } else {
+      setLockoutActive(false);
+      setCountdownSeconds(0);
+      setRemainingAttempts(null);
+    }
+  }, [email]);
+
+  // Countdown timer effect
+  React.useEffect(() => {
+    if (countdownSeconds <= 0) {
+      if (lockoutActive) {
+        setLockoutActive(false);
+        setRemainingAttempts(5);
+        toast.success("Login lockout lifted. You can try logging in again.");
+      }
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCountdownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setLockoutActive(false);
+          setRemainingAttempts(5);
+          toast.success("Login lockout lifted. You can try logging in again.");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [countdownSeconds, lockoutActive]);
 
   // Handle redirect result if user returning from signInWithRedirect
   React.useEffect(() => {
@@ -54,11 +134,40 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    
     setLoading(true);
+    const emailId = email.toLowerCase().trim();
+
+    // 1. Check if login is currently locked
+    const isLocked = await checkLockoutStatus(email);
+    if (isLocked) {
+      setLoading(false);
+      toast.error('Login is temporarily locked due to consecutive failed attempts. Please wait or use "Forgot Password".');
+      return;
+    }
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // 2. Reset failed attempts immediately after a successful login
+      try {
+        const attemptDocRef = doc(db, 'login_attempts', emailId);
+        await setDoc(attemptDocRef, {
+          attempts: 0,
+          lockedUntil: null,
+          lastAttemptAt: serverTimestamp()
+        }, { merge: true });
+        setRemainingAttempts(5);
+        setLockoutActive(false);
+        setCountdownSeconds(0);
+      } catch (err) {
+        console.error("Error resetting login attempts:", err);
+      }
 
       // Sync user to Firestore if not exists
       const docRef = doc(db, 'users', user.uid);
@@ -82,13 +191,61 @@ export default function Login() {
       toast.success('Welcome back!');
       navigate('/');
     } catch (error: any) {
-      console.error(error);
-      if (error.code === 'auth/unauthorized-domain') {
+      console.error("Login error:", error);
+      
+      // We must handle specific authentication failures to track consecutive failed attempts
+      if (
+        error.code === 'auth/invalid-credential' || 
+        error.code === 'auth/wrong-password' || 
+        error.code === 'auth/user-not-found'
+      ) {
+        try {
+          const attemptDocRef = doc(db, 'login_attempts', emailId);
+          const attemptSnap = await getDoc(attemptDocRef);
+          let currentAttempts = 0;
+          if (attemptSnap.exists()) {
+            currentAttempts = attemptSnap.data().attempts || 0;
+          }
+
+          const newAttempts = currentAttempts + 1;
+          if (newAttempts >= 5) {
+            const lockedUntilTime = Date.now() + 15 * 60 * 1000; // 15 minutes lockout
+            await setDoc(attemptDocRef, {
+              attempts: 5,
+              lockedUntil: new Date(lockedUntilTime),
+              lastAttemptAt: serverTimestamp()
+            }, { merge: true });
+
+            setCountdownSeconds(15 * 60);
+            setLockoutActive(true);
+            setRemainingAttempts(0);
+            toast.error('This account is temporarily locked for 15 minutes due to 5 consecutive failed login attempts.');
+          } else {
+            await setDoc(attemptDocRef, {
+              attempts: newAttempts,
+              lockedUntil: null,
+              lastAttemptAt: serverTimestamp()
+            }, { merge: true });
+
+            setRemainingAttempts(5 - newAttempts);
+            toast.error(`Invalid email or password. ${5 - newAttempts} attempts remaining.`);
+          }
+        } catch (dbErr) {
+          console.error("Error writing failed login attempt to DB:", dbErr);
+          toast.error('Invalid email or password. Please try again.');
+        }
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Please enter a valid email address.');
+      } else if (error.code === 'auth/user-disabled') {
+        toast.error('This account has been disabled. Please contact system support.');
+      } else if (error.code === 'auth/network-request-failed') {
+        toast.error('Network error. Please check your internet connection and try again.');
+      } else if (error.code === 'auth/unauthorized-domain') {
         toast.error('Domain not authorized. Please add this URL to Firebase authorized domains.');
-      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-        toast.error('Invalid email or password. Please try again.');
+      } else if (error.code === 'auth/too-many-requests') {
+        toast.error('Too many requests. Login has been temporarily blocked by security policy.');
       } else {
-        toast.error(error.message || 'Failed to sign in');
+        toast.error(error.message || 'Failed to sign in. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -174,28 +331,33 @@ export default function Login() {
 
   if (showForgotPassword) {
     return (
-      <div className="max-w-md mx-auto py-12">
-        <div className="glass-card space-y-8">
+      <div className="max-w-md mx-auto py-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="bg-white rounded-[3rem] border border-secondary shadow-2xl p-12 space-y-10">
           <button 
             onClick={() => setShowForgotPassword(false)}
-            className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-sm font-bold"
+            className="flex items-center gap-2 text-[10px] text-body/40 font-black tracking-widest hover:text-primary-dark transition-colors uppercase border-b border-transparent hover:border-primary-dark/20 pb-0.5"
           >
-            <ArrowLeft size={16} />
-            Back
+            <ArrowLeft size={14} strokeWidth={2.5} />
+            <span>Back to Login</span>
           </button>
 
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-black tracking-tighter">RESET <span className="text-primary italic">PASSWORD</span></h1>
-            <p className="text-zinc-500 text-sm">Enter your email for the reset link</p>
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary-dark border border-primary/20 mx-auto">
+              <Mail size={32} strokeWidth={1} />
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-3xl font-semibold tracking-tighter text-heading uppercase">Reset <span className="text-primary-dark italic font-normal">Password</span></h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-body/30">Enter your email for the reset link</p>
+            </div>
           </div>
 
-          <form onSubmit={handleForgotPassword} className="space-y-6">
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <form onSubmit={handleForgotPassword} className="space-y-8">
+            <div className="relative group">
+              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-body/20 group-focus-within:text-primary-dark transition-colors" size={18} />
               <input 
                 type="email"
                 placeholder="Email Address"
-                className="input-field w-full pl-12"
+                className="w-full bg-background/30 border border-secondary rounded-2xl pl-14 pr-6 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
                 required
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
@@ -205,10 +367,10 @@ export default function Login() {
             <button 
               type="submit" 
               disabled={loading}
-              className="primary-button w-full flex items-center justify-center gap-2"
+              className="primary-button w-full h-16 flex items-center justify-center gap-3 text-[11px]"
             >
               {loading ? 'Sending...' : 'Send Reset Link'}
-              <ArrowRight size={18} />
+              <ArrowRight size={16} strokeWidth={2} />
             </button>
           </form>
         </div>
@@ -290,6 +452,19 @@ export default function Login() {
               Forgot Password?
             </button>
           </div>
+
+          {lockoutActive && countdownSeconds > 0 ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-[10px] font-black uppercase tracking-wider text-center space-y-1 animate-in fade-in duration-300">
+              <div>Login is Temporarily Locked</div>
+              <div className="text-xs font-semibold text-red-700 normal-case">
+                Please wait {Math.floor(countdownSeconds / 60)}m {countdownSeconds % 60}s before trying again.
+              </div>
+            </div>
+          ) : remainingAttempts !== null && remainingAttempts < 5 ? (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-[10px] font-black uppercase tracking-wider text-center animate-in fade-in duration-300">
+              {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining
+            </div>
+          ) : null}
 
           <button 
             type="submit" 

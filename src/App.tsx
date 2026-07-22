@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'sonner';
@@ -13,6 +13,7 @@ import BookingConfirmation from './pages/BookingConfirmation';
 import MyBookings from './pages/MyBookings';
 import PaymentStatus from './pages/PaymentStatus';
 import MyWishlist from './pages/MyWishlist';
+import AccountSettings from './pages/AccountSettings';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminListingEditor from './pages/AdminListingEditor';
 import ListProperty from './pages/ListProperty';
@@ -26,6 +27,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import NavigationStateRestorer from './components/NavigationStateRestorer';
+import SplashScreen from './components/SplashScreen';
 
 const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -55,6 +57,7 @@ function AppRoutes() {
           <Route path="/payment/status/:status" element={<AuthGuard><PaymentStatus /></AuthGuard>} />
           <Route path="/my-bookings" element={<AuthGuard><MyBookings /></AuthGuard>} />
           <Route path="/my-wishlist" element={<AuthGuard><MyWishlist /></AuthGuard>} />
+          <Route path="/settings" element={<AuthGuard><AccountSettings /></AuthGuard>} />
           <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
           <Route path="/admin/listing/new" element={<AdminGuard><AdminListingEditor /></AdminGuard>} />
           <Route path="/admin/listing/edit/:id" element={<AdminGuard><AdminListingEditor /></AdminGuard>} />
@@ -71,6 +74,44 @@ function AppRoutes() {
   );
 }
 
+function AppContent() {
+  const { user, loading: authLoading } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+  const [timerFinished, setTimerFinished] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimerFinished(true);
+    }, 2500); // 2.5s luxury splash display
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (timerFinished && !authLoading) {
+      setShowSplash(false);
+      if (user) {
+        // Redirection for logged-in users who land on login/register pages
+        if (location.pathname === '/login' || location.pathname === '/register') {
+          navigate('/');
+        }
+      } else {
+        // Redirection for non-logged-in users - automatically take them to Login/Welcome screen
+        if (location.pathname !== '/login' && location.pathname !== '/register') {
+          navigate('/login');
+        }
+      }
+    }
+  }, [timerFinished, authLoading, user, navigate, location.pathname]);
+
+  if (showSplash) {
+    return <SplashScreen />;
+  }
+
+  return <AppRoutes />;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -78,7 +119,7 @@ export default function App() {
         <NavigationStateRestorer />
         <ThemeProvider>
           <AuthProvider>
-            <AppRoutes />
+            <AppContent />
           </AuthProvider>
         </ThemeProvider>
       </Router>
