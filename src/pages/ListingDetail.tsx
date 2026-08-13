@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MapPin, Info, ArrowLeft, Calendar as CalendarIcon, Info as InfoIcon, CheckCircle2, Star, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Info, ArrowLeft, Calendar as CalendarIcon, Info as InfoIcon, CheckCircle2, Star, User, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { DayPicker, DateRange } from 'react-day-picker';
 import { format, differenceInDays, isBefore, startOfToday, addDays, eachDayOfInterval, areIntervalsOverlapping, parseISO, isSameDay } from 'date-fns';
@@ -41,6 +41,7 @@ export default function ListingDetail() {
   const navigate = useNavigate();
   const [listing, setListing] = useState<Listing | null>(null);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const touchStartXRef = useRef<number>(0);
 
   const getActiveImageIndices = () => {
@@ -309,8 +310,7 @@ export default function ListingDetail() {
 
   const handleBookNow = () => {
     if (!user) {
-      toast.info('Please login to book this property');
-      navigate('/login');
+      setShowAuthModal(true);
       return;
     }
     if (!range?.from) {
@@ -724,6 +724,98 @@ export default function ListingDetail() {
           </div>
         )}
       </div>
+
+      {/* Booking Authentication Modal */}
+      {showAuthModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setShowAuthModal(false)}
+        >
+          <div 
+            className="bg-white rounded-[2.5rem] border border-secondary p-8 sm:p-10 max-w-md w-full shadow-2xl space-y-6 relative overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary-dark mx-auto border border-primary/20">
+                <Lock size={28} strokeWidth={1.5} />
+              </div>
+              <h3 className="text-2xl font-bold uppercase tracking-tight text-heading">
+                Account <span className="text-primary-dark italic font-normal">Required</span>
+              </h3>
+              <p className="text-xs text-body/70 leading-relaxed font-medium">
+                Please login or create an account to continue with your booking.
+              </p>
+            </div>
+
+            {listing && (
+              <div className="bg-background/60 p-4 rounded-2xl border border-secondary space-y-2 text-left">
+                <div className="text-[10px] font-black uppercase tracking-widest text-primary-dark truncate">
+                  {listing.title}
+                </div>
+                <div className="flex items-center justify-between text-xs text-body/60">
+                  <span>{listing.location || 'Bin Usman Luxury'} • Rs. {listing.price?.toLocaleString()}/night</span>
+                  {range?.from && (
+                    <span className="font-bold text-heading">
+                      {nights} {nights === 1 ? 'night' : 'nights'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3 pt-2">
+              <button
+                onClick={() => {
+                  setShowAuthModal(false);
+                  navigate('/login', {
+                    state: {
+                      from: `/booking/${listing.id}`,
+                      bookingState: {
+                        checkIn: range?.from ? range.from.toISOString() : new Date().toISOString(),
+                        checkOut: range?.to ? range.to.toISOString() : (range?.from ? range.from.toISOString() : new Date(Date.now() + 86400000).toISOString()),
+                        nights: nights > 0 ? nights : 1,
+                        totalPrice: totalPrice > 0 ? totalPrice : listing.price
+                      },
+                      listingId: listing.id
+                    }
+                  });
+                }}
+                className="primary-button w-full h-14 flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em]"
+              >
+                Login
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowAuthModal(false);
+                  navigate('/register', {
+                    state: {
+                      from: `/booking/${listing.id}`,
+                      bookingState: {
+                        checkIn: range?.from ? range.from.toISOString() : new Date().toISOString(),
+                        checkOut: range?.to ? range.to.toISOString() : (range?.from ? range.from.toISOString() : new Date(Date.now() + 86400000).toISOString()),
+                        nights: nights > 0 ? nights : 1,
+                        totalPrice: totalPrice > 0 ? totalPrice : listing.price
+                      },
+                      listingId: listing.id
+                    }
+                  });
+                }}
+                className="w-full h-14 rounded-full border border-secondary bg-white text-heading hover:border-primary-dark hover:text-primary-dark text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center"
+              >
+                Create Account
+              </button>
+
+              <button
+                onClick={() => setShowAuthModal(false)}
+                className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-body/40 hover:text-heading transition-colors"
+              >
+                Continue Browsing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

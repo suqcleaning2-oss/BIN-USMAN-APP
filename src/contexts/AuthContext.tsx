@@ -47,9 +47,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await auth.currentUser.reload();
             await auth.currentUser.getIdToken(true);
             console.log("[Auth] Session active. Token refreshed successfully on resume.");
-          } catch (error) {
-            console.error("[Auth] Session broken or corrupted on resume. Executing soft refresh:", error);
-            window.location.reload();
+          } catch (error: any) {
+            const isNetworkError = 
+              error?.code === 'auth/network-request-failed' || 
+              (error?.message && error.message.includes('network-request-failed')) ||
+              !navigator.onLine;
+
+            if (isNetworkError) {
+              console.warn("[Auth] Network connection unavailable on resume. Firebase Auth will retry automatically.");
+            } else {
+              console.error("[Auth] Session broken or corrupted on resume. Executing soft refresh:", error);
+              window.location.reload();
+            }
           }
         } else if (hiddenTimestamp && timeHidden >= 4.5 * 60 * 1000) {
           // Softly refresh the page after 5 minutes background behavior to clean up stale resources

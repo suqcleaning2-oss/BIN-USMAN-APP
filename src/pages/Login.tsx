@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -17,6 +17,13 @@ export default function Login() {
   const [lockoutActive, setLockoutActive] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const redirectAfterAuth = () => {
+    const destination = location.state?.from || '/';
+    const bookingState = location.state?.bookingState;
+    navigate(destination, { state: bookingState, replace: true });
+  };
 
   const checkLockoutStatus = async (targetEmail: string): Promise<boolean> => {
     if (!targetEmail) return false;
@@ -122,7 +129,7 @@ export default function Login() {
           }
 
           toast.success('Welcome back!');
-          navigate('/');
+          redirectAfterAuth();
         }
       } catch (error: any) {
         console.error("Redirect error:", error);
@@ -130,7 +137,7 @@ export default function Login() {
       }
     };
     handleRedirect();
-  }, [navigate]);
+  }, [navigate, location.state]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,7 +196,7 @@ export default function Login() {
       }
 
       toast.success('Welcome back!');
-      navigate('/');
+      redirectAfterAuth();
     } catch (error: any) {
       console.error("Login error:", error);
       
@@ -305,7 +312,7 @@ export default function Login() {
       }
 
       toast.success('Welcome back!');
-      navigate('/');
+      redirectAfterAuth();
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.log("Popup closed or cancelled, retrying with redirect...");
@@ -479,7 +486,7 @@ export default function Login() {
         <div className="text-center pt-4">
           <p className="text-[10px] font-black tracking-[0.15em] text-body/30 uppercase">
             New here? {' '}
-            <Link to="/register" className="text-primary-dark hover:underline underline-offset-4">Create Account</Link>
+            <Link to="/register" state={location.state} className="text-primary-dark hover:underline underline-offset-4">Create Account</Link>
           </p>
         </div>
       </div>

@@ -36,35 +36,8 @@ export default function NavigationStateRestorer() {
   useEffect(() => {
     if (isRestored.current) return;
     isRestored.current = true;
-
-    // Only restore if the user starts at the root '/' page.
-    // If they have a deep link or external callback URL (like /payment/status/... or /listing/xyz),
-    // we MUST respect that immediately and avoid overriding it!
-    if (window.location.pathname === '/') {
-      try {
-        const saved = localStorage.getItem('binusman_last_route');
-        if (saved) {
-          const routeData = JSON.parse(saved);
-          if (routeData && routeData.pathname && routeData.pathname !== '/') {
-            console.log(`Restoring previous screen: ${routeData.pathname}${routeData.search || ''}`);
-            navigate(
-              {
-                pathname: routeData.pathname,
-                search: routeData.search || '',
-                hash: routeData.hash || ''
-              },
-              {
-                state: routeData.state,
-                replace: true
-              }
-            );
-          }
-        }
-      } catch (err) {
-        console.error("Error restoring navigation state:", err);
-      }
-    }
-  }, [navigate]);
+    // App start opens Home page directly without overriding with historical routes
+  }, []);
 
   return null;
 }

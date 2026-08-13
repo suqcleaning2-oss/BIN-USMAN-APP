@@ -31,15 +31,18 @@ import SplashScreen from './components/SplashScreen';
 
 const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <div className="min-h-[60vh] w-full flex items-center justify-center">Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location.pathname, search: location.search, bookingState: location.state }} replace />;
+  }
   return <>{children}</>;
 };
 
 const AdminGuard = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin, loading } = useAuth();
   if (loading) return <div className="min-h-[60vh] w-full flex items-center justify-center">Loading...</div>;
-  if (!isAdmin) return <Navigate to="/" />;
+  if (!isAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -84,26 +87,29 @@ function AppContent() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setTimerFinished(true);
-    }, 2500); // 2.5s luxury splash display
+    }, 2000); // 2s brand splash display
     return () => clearTimeout(timer);
+  }, []);
+
+  // Safety fallback so splash screen never gets stuck indefinitely
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3500);
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
   useEffect(() => {
     if (timerFinished && !authLoading) {
       setShowSplash(false);
-      if (user) {
-        // Redirection for logged-in users who land on login/register pages
-        if (location.pathname === '/login' || location.pathname === '/register') {
-          navigate('/');
-        }
-      } else {
-        // Redirection for non-logged-in users - automatically take them to Login/Welcome screen
-        if (location.pathname !== '/login' && location.pathname !== '/register') {
-          navigate('/login');
-        }
+      // Only redirect if a logged-in user explicitly lands on /login or /register
+      if (user && (location.pathname === '/login' || location.pathname === '/register')) {
+        const destination = location.state?.from || '/';
+        const bookingState = location.state?.bookingState;
+        navigate(destination, { state: bookingState, replace: true });
       }
     }
-  }, [timerFinished, authLoading, user, navigate, location.pathname]);
+  }, [timerFinished, authLoading, user, navigate, location.pathname, location.state]);
 
   if (showSplash) {
     return <SplashScreen />;

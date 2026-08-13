@@ -355,7 +355,7 @@ export default function AccountSettings() {
             <button
               onClick={async () => {
                 await auth.signOut();
-                navigate('/login');
+                navigate('/');
               }}
               className="w-full flex items-center justify-center gap-2 py-3 border border-red-200 hover:border-red-600 rounded-xl text-red-600 hover:bg-red-50 text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95"
             >

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -24,6 +24,13 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const redirectAfterAuth = () => {
+    const destination = location.state?.from || '/';
+    const bookingState = location.state?.bookingState;
+    navigate(destination, { state: bookingState, replace: true });
+  };
 
   // Handle redirect result if user returning from signInWithRedirect
   React.useEffect(() => {
@@ -57,7 +64,7 @@ export default function Register() {
           }
 
           toast.success('Signed in successfully!');
-          navigate('/');
+          redirectAfterAuth();
         }
       } catch (error: any) {
         console.error("Redirect error:", error);
@@ -65,7 +72,7 @@ export default function Register() {
       }
     };
     handleRedirect();
-  }, [navigate]);
+  }, [navigate, location.state]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +139,7 @@ export default function Register() {
 
       setLoading(false);
       toast.success('Account created successfully!');
-      navigate('/');
+      redirectAfterAuth();
     } catch (error: any) {
       console.error(error);
       if (error.code === 'auth/unauthorized-domain') {
@@ -178,7 +185,7 @@ export default function Register() {
       }
 
       toast.success('Signed in successfully!');
-      navigate('/');
+      redirectAfterAuth();
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.log("Popup closed or cancelled, retrying with redirect...");
@@ -339,7 +346,7 @@ export default function Register() {
         <div className="text-center pt-4">
           <p className="text-[10px] font-black tracking-[0.15em] text-body/30 uppercase">
             Already have an account? {' '}
-            <Link to="/login" className="text-primary-dark hover:underline underline-offset-4">Login Now</Link>
+            <Link to="/login" state={location.state} className="text-primary-dark hover:underline underline-offset-4">Login Now</Link>
           </p>
         </div>
       </div>

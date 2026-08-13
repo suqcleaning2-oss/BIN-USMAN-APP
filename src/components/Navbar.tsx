@@ -51,7 +51,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     await auth.signOut();
     setIsDrawerOpen(false);
-    navigate('/login');
+    navigate('/');
   };
 
   const menuItems = [
