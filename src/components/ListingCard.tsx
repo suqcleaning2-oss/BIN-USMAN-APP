@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getWishlistStatus, addToWishlist, removeFromWishlist } from '../services/wishlistService';
 import { toast } from 'sonner';
 import OptimizedImage from './OptimizedImage';
+import { formatCityName } from '../lib/city-utils';
 
 interface ListingProps {
   id: string;
@@ -21,6 +22,8 @@ export default function ListingCard({ id, title, price, location, locationName, 
   const { user } = useAuth();
   const [wishlistId, setWishlistId] = useState<string | null>(null);
   const [isToggling, setIsToggling] = useState(false);
+
+  const displayCity = formatCityName(city || location);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -102,7 +105,7 @@ export default function ListingCard({ id, title, price, location, locationName, 
 
         <div className="p-8 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary-dark opacity-60">{city}</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary-dark opacity-60">{displayCity}</span>
             <div className="flex items-center gap-2">
               <MapPin size={12} strokeWidth={1} className="text-secondary" />
               <span className="text-[9px] font-black text-body/40 uppercase tracking-widest">{location}</span>

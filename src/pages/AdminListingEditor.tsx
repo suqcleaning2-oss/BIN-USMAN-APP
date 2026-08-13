@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, setDoc, addDoc, collection, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, updateDoc, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Plus, X, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, Image as ImageIcon, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
+import { getUniqueCitiesFromListings, formatCityName, areCitiesEqual } from '../lib/city-utils';
 
 export default function AdminListingEditor() {
   const { id } = useParams();
@@ -29,11 +30,27 @@ export default function AdminListingEditor() {
     price24hrs: ''
   });
 
-  const PAKISTAN_CITIES = [
-    'Islamabad', 'Karachi', 'Lahore', 'Rawalpindi', 'Peshawar', 'Quetta', 'Multan', 'Faisalabad', 'Sialkot', 'Murree'
-  ];
+  const [isCustomCity, setIsCustomCity] = useState(false);
+  const [customCityInput, setCustomCityInput] = useState('');
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
+
+  // Fetch all existing listings to build dynamic city list
+  useEffect(() => {
+    const loadCities = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'listings'));
+        const existingListings = snap.docs.map(d => d.data());
+        const cities = getUniqueCitiesFromListings(existingListings, false);
+        setAvailableCities(cities);
+      } catch (err) {
+        console.error("Error loading existing cities:", err);
+        setAvailableCities(getUniqueCitiesFromListings([], false));
+      }
+    };
+    loadCities();
+  }, []);
 
   useEffect(() => {
     if (isEdit) {
@@ -49,6 +66,7 @@ export default function AdminListingEditor() {
           
           if (docSnap && docSnap.exists()) {
             const data = docSnap.data();
+            const currentCity = data.city || 'Islamabad';
             setFormData({
               title: data.title || '',
               description: data.description || '',
@@ -57,7 +75,7 @@ export default function AdminListingEditor() {
               locationName: data.locationName || '',
               latitude: data.latitude ? String(data.latitude) : '',
               longitude: data.longitude ? String(data.longitude) : '',
-              city: data.city || 'Islamabad',
+              city: currentCity,
               images: data.images && data.images.length > 0 ? data.images : [''],
               hostCode: data.hostCode || '',
               listingCode: data.listingCode || '',
@@ -95,9 +113,11 @@ export default function AdminListingEditor() {
     e.preventDefault();
     setLoading(true);
 
+    const finalCity = formatCityName(isCustomCity ? customCityInput : formData.city) || 'Islamabad';
     const basePrice = parseFloat(formData.price) || 0;
     const dataToSave = {
       ...formData,
+      city: finalCity,
       price: basePrice,
       price12hrs: formData.price12hrs ? parseFloat(formData.price12hrs) : basePrice,
       price24hrs: formData.price24hrs ? parseFloat(formData.price24hrs) : basePrice,
@@ -255,17 +275,51 @@ export default function AdminListingEditor() {
             />
           </div>
           <div className="space-y-4">
-            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">City</label>
-            <select
-              required
-              className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all appearance-none cursor-pointer italic"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-            >
-              {PAKISTAN_CITIES.map(city => (
-                <option key={city} value={city}>{city}</option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">City</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomCity(!isCustomCity);
+                  if (!isCustomCity && !customCityInput) {
+                    setCustomCityInput(formData.city);
+                  }
+                }}
+                className="text-[9px] font-black uppercase tracking-wider text-primary-dark hover:underline cursor-pointer"
+              >
+                {isCustomCity ? '← Choose from list' : '+ Enter New City'}
+              </button>
+            </div>
+
+            {isCustomCity ? (
+              <input
+                type="text"
+                required
+                className="w-full bg-background/30 border border-primary-dark/50 rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all italic placeholder:text-body/30"
+                placeholder="Type new city (e.g. Skardu, Hunza, Dubai)..."
+                value={customCityInput}
+                onChange={(e) => setCustomCityInput(e.target.value)}
+              />
+            ) : (
+              <select
+                required
+                className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all appearance-none cursor-pointer italic"
+                value={formData.city}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setIsCustomCity(true);
+                    setCustomCityInput('');
+                  } else {
+                    setFormData({ ...formData, city: e.target.value });
+                  }
+                }}
+              >
+                {availableCities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+                <option value="__custom__">+ Enter New / Other City...</option>
+              </select>
+            )}
           </div>
           <div className="space-y-4">
             <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1">Host Code</label>

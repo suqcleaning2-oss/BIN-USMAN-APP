@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, CheckCircle2, Building, Send, Sparkles, Phone, Mail, User, ShieldCheck, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
-
-const PAKISTAN_CITIES = [
-  'Islamabad', 'Karachi', 'Lahore', 'Rawalpindi', 'Peshawar', 'Quetta', 'Multan', 'Faisalabad', 'Sialkot', 'Murree'
-];
+import { getUniqueCitiesFromListings, formatCityName } from '../lib/city-utils';
 
 export default function ListProperty() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [isCustomCity, setIsCustomCity] = useState(false);
+  const [customCityInput, setCustomCityInput] = useState('');
 
   const [formData, setFormData] = useState({
     fullName: profile?.fullName || '',
@@ -20,12 +21,31 @@ export default function ListProperty() {
     email: user?.email || '',
     totalProperties: '',
     price: '',
-    city: PAKISTAN_CITIES[0],
+    city: 'Islamabad',
     description: ''
   });
 
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const loadCities = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'listings'));
+        const existingListings = snap.docs.map(d => d.data());
+        const cities = getUniqueCitiesFromListings(existingListings, false);
+        setAvailableCities(cities);
+        if (cities.length > 0) {
+          setFormData(prev => ({ ...prev, city: cities[0] }));
+        }
+      } catch (err) {
+        console.error("Error loading cities:", err);
+        const fallback = getUniqueCitiesFromListings([], false);
+        setAvailableCities(fallback);
+      }
+    };
+    loadCities();
+  }, []);
 
   const handleBack = () => {
     if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
@@ -38,9 +58,11 @@ export default function ListProperty() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const finalCity = formatCityName(isCustomCity ? customCityInput : formData.city);
+
     // Validate required fields
     if (!formData.fullName.trim() || !formData.contactNumber.trim() || !formData.email.trim() || 
-        !formData.totalProperties || !formData.price || !formData.city) {
+        !formData.totalProperties || !formData.price || !finalCity) {
       toast.error("Please fill in all mandatory fields.");
       return;
     }
@@ -54,7 +76,7 @@ export default function ListProperty() {
         email: formData.email.trim(),
         totalProperties: Number(formData.totalProperties),
         price: Number(formData.price),
-        city: formData.city,
+        city: finalCity,
         description: formData.description.trim(),
         status: 'pending',
         createdAt: serverTimestamp()
@@ -216,20 +238,54 @@ export default function ListProperty() {
 
           {/* City */}
           <div className="space-y-3">
-            <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1 flex items-center gap-1.5">
-              City <span className="text-red-500">*</span>
-            </label>
-            <select
-              className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all text-heading uppercase tracking-widest cursor-pointer"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-            >
-              {PAKISTAN_CITIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1 flex items-center gap-1.5">
+                City <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomCity(!isCustomCity);
+                  if (!isCustomCity && !customCityInput) {
+                    setCustomCityInput(formData.city);
+                  }
+                }}
+                className="text-[9px] font-black uppercase tracking-wider text-primary-dark hover:underline cursor-pointer"
+              >
+                {isCustomCity ? '← Choose from list' : '+ Enter Other City'}
+              </button>
+            </div>
+
+            {isCustomCity ? (
+              <input
+                type="text"
+                required
+                className="w-full bg-background/30 border border-primary-dark/50 rounded-2xl px-6 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all italic placeholder:text-body/30 uppercase tracking-wider"
+                placeholder="Type city name (e.g. Hunza, Skardu)..."
+                value={customCityInput}
+                onChange={(e) => setCustomCityInput(e.target.value)}
+              />
+            ) : (
+              <select
+                className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all text-heading uppercase tracking-widest cursor-pointer"
+                value={formData.city}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setIsCustomCity(true);
+                    setCustomCityInput('');
+                  } else {
+                    setFormData({ ...formData, city: e.target.value });
+                  }
+                }}
+              >
+                {availableCities.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value="__custom__">+ Enter Other / New City...</option>
+              </select>
+            )}
           </div>
 
           {/* Description */}

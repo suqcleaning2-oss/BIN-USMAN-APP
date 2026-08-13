@@ -11,7 +11,6 @@ import Register from './pages/Register';
 import ListingDetail from './pages/ListingDetail';
 import BookingConfirmation from './pages/BookingConfirmation';
 import MyBookings from './pages/MyBookings';
-import PaymentStatus from './pages/PaymentStatus';
 import MyWishlist from './pages/MyWishlist';
 import AccountSettings from './pages/AccountSettings';
 import AdminDashboard from './pages/AdminDashboard';
@@ -57,7 +56,7 @@ function AppRoutes() {
           <Route path="/register" element={<Register />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/booking/:id" element={<AuthGuard><BookingConfirmation /></AuthGuard>} />
-          <Route path="/payment/status/:status" element={<AuthGuard><PaymentStatus /></AuthGuard>} />
+          <Route path="/payment/status/:status" element={<Navigate to="/my-bookings" replace />} />
           <Route path="/my-bookings" element={<AuthGuard><MyBookings /></AuthGuard>} />
           <Route path="/my-wishlist" element={<AuthGuard><MyWishlist /></AuthGuard>} />
           <Route path="/settings" element={<AuthGuard><AccountSettings /></AuthGuard>} />

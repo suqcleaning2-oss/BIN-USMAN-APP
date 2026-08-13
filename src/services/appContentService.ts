@@ -44,9 +44,9 @@ We reserve the right to modify this Privacy Policy at any time. Any changes will
     content: `### 1. Acceptance of Terms
 By accessing or using the Bin Usman application and website, you agree to be bound by these Terms & Conditions. If you do not agree to all of these terms, please do not use our services.
 
-### 2. Booking and Payments
-- **Property Reservations**: Users can browse elite property listings in Pakistan and place stay reservations. All bookings are subject to availability and verification.
-- **Authorized Payments**: Payments must be completed through our secure, official channels as outlined in your booking confirmation.
+### 2. Booking and Reservations
+- **Property Reservations**: Users can browse elite property listings in Pakistan and place stay reservations. All bookings are subject to availability and direct verification.
+- **Direct WhatsApp Confirmation**: Booking requests are processed and confirmed directly via our official WhatsApp concierge channel (+923309998917).
 - **Cancellation Policy**: Specific cancellation policies are governed by the individual property rules listed on each listing page.
 
 ### 3. Lister & Partner Rules

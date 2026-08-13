@@ -13,6 +13,7 @@ import 'react-day-picker/dist/style.css';
 import { RefreshButton } from '../components/RefreshButton';
 import OptimizedImage from '../components/OptimizedImage';
 import { safeOpenExternalApp, useScrollRestoration } from '../lib/lifecycle-utils';
+import { formatCityName } from '../lib/city-utils';
 
 interface Listing {
   id: string;
@@ -21,6 +22,7 @@ interface Listing {
   price: number;
   location: string;
   locationName?: string;
+  city?: string;
   latitude?: number;
   longitude?: number;
   images: string[];
@@ -585,9 +587,9 @@ export default function ListingDetail() {
                <InfoIcon size={20} />
              </div>
              <div className="space-y-1.5">
-               <h4 className="text-[10px] font-black uppercase tracking-widest text-heading">Easy Booking</h4>
+               <h4 className="text-[10px] font-black uppercase tracking-widest text-heading">Direct WhatsApp Booking</h4>
                <p className="text-[11px] text-body/60 leading-relaxed font-medium tracking-wide">
-                 Pay safely with Cashmaal. Your booking is processed securely.
+                 No online payment required. Instantly connect with our team on WhatsApp to confirm your dates and reservation.
                </p>
              </div>
           </div>

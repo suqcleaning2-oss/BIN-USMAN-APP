@@ -343,29 +343,30 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-10 py-8">
                       <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.15em] border shadow-sm ${
-                        booking.status === 'approved' ? 'bg-green-50 text-green-600 border-green-100' :
+                        booking.status === 'approved' || booking.status === 'confirmed' ? 'bg-green-50 text-green-600 border-green-100' :
                         booking.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-100' :
                         booking.status === 'cancelled' ? 'bg-zinc-50 text-zinc-500 border-zinc-200' :
+                        booking.status === 'whatsapp_pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                         'bg-primary/5 text-primary-dark border-primary/20 animate-pulse'
                       }`}>
-                        {booking.status}
+                        {booking.status === 'whatsapp_pending' ? 'WhatsApp Pending' : booking.status}
                       </span>
                     </td>
                     <td className="px-10 py-8">
                       <div className="flex gap-3">
-                        {booking.status === 'pending' && (
+                        {(booking.status === 'pending' || booking.status === 'whatsapp_pending') && (
                           <>
                             <button 
                               onClick={() => handleUpdateStatus(booking.id, 'approved')}
-                              className="w-10 h-10 bg-white text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition-all border border-secondary shadow-sm flex items-center justify-center group/btn"
-                              title="Authorize"
+                              className="w-10 h-10 bg-white text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition-all border border-secondary shadow-sm flex items-center justify-center group/btn cursor-pointer"
+                              title="Approve Booking"
                             >
                               <Check size={18} strokeWidth={2.5} />
                             </button>
                             <button 
                               onClick={() => handleUpdateStatus(booking.id, 'rejected')}
-                              className="w-10 h-10 bg-white text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-secondary shadow-sm flex items-center justify-center group/btn"
-                              title="Decline"
+                              className="w-10 h-10 bg-white text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-secondary shadow-sm flex items-center justify-center group/btn cursor-pointer"
+                              title="Decline Booking"
                             >
                               <X size={18} strokeWidth={2.5} />
                             </button>

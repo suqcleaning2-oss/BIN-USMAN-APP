@@ -7,6 +7,7 @@ import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { RefreshButton } from '../components/RefreshButton';
 import { usePersistentState, useScrollRestoration } from '../lib/lifecycle-utils';
 import { useTheme } from '../contexts/ThemeContext';
+import { getUniqueCitiesFromListings, doesListingMatchCity, areCitiesEqual } from '../lib/city-utils';
 
 interface Listing {
   id: string;
@@ -17,10 +18,6 @@ interface Listing {
   city: string;
   images: string[];
 }
-
-const PAKISTAN_CITIES = [
-  'All', 'Islamabad', 'Karachi', 'Lahore', 'Rawalpindi', 'Peshawar', 'Quetta', 'Multan', 'Faisalabad', 'Sialkot', 'Murree'
-];
 
 export default function Home() {
   const { theme } = useTheme();
@@ -67,25 +64,27 @@ export default function Home() {
     await fetchListings();
   };
 
+  // Dynamically extract all unique cities from existing Firestore listings + defaults
+  const availableCities = React.useMemo(() => {
+    return getUniqueCitiesFromListings(listings, true);
+  }, [listings]);
+
   // Memoize listings filtering to eliminate redundant computations on rebuilds / typing
   const filteredListings = React.useMemo(() => {
     return listings.filter(l => {
-      // City Filter (Case-insensitive & trimmed)
-      if (selectedCity !== 'All') {
-        const listingCity = (l.city || '').trim().toLowerCase();
-        const targetCity = selectedCity.trim().toLowerCase();
-        if (listingCity !== targetCity) {
-          return false;
-        }
+      // Robust City Filter (Case-insensitive & whitespace trimmed, matching Firestore data)
+      if (!doesListingMatchCity(l, selectedCity)) {
+        return false;
       }
 
       // Search Term Filter
       if (searchTerm) {
-        const term = searchTerm.toLowerCase();
+        const term = searchTerm.trim().toLowerCase();
         const titleMatch = (l.title || '').toLowerCase().includes(term);
         const locationMatch = (l.location || '').toLowerCase().includes(term);
+        const locationNameMatch = (l.locationName || '').toLowerCase().includes(term);
         const cityMatch = (l.city || '').toLowerCase().includes(term);
-        return titleMatch || locationMatch || cityMatch;
+        return titleMatch || locationMatch || locationNameMatch || cityMatch;
       }
 
       return true;
@@ -218,22 +217,25 @@ export default function Home() {
         </div>
         
         <div className="flex gap-3 overflow-x-auto touch-scroll-x pb-4 scrollbar-hide -mx-4 px-4 snap-x">
-          {PAKISTAN_CITIES.map((city) => (
-            <button
-              key={city}
-              onClick={() => setSelectedCity(city)}
-              className={`
-                flex items-center gap-2 px-8 py-3.5 rounded-full whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all snap-start
-                ${selectedCity === city 
-                  ? 'bg-primary-dark text-neutral-900 font-bold shadow-xl shadow-primary-dark/10 ring-4 ring-primary-dark/5' 
-                  : isDark
-                    ? 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-primary-dark/30 hover:text-white'
-                    : 'bg-white text-body/40 border border-secondary hover:border-primary-dark/30 hover:text-heading'}
-              `}
-            >
-              {city}
-            </button>
-          ))}
+          {availableCities.map((city) => {
+            const isSelected = areCitiesEqual(selectedCity, city);
+            return (
+              <button
+                key={city}
+                onClick={() => setSelectedCity(city)}
+                className={`
+                  flex items-center gap-2 px-8 py-3.5 rounded-full whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all snap-start cursor-pointer
+                  ${isSelected 
+                    ? 'bg-primary-dark text-neutral-900 font-bold shadow-xl shadow-primary-dark/10 ring-4 ring-primary-dark/5' 
+                    : isDark
+                      ? 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-primary-dark/30 hover:text-white'
+                      : 'bg-white text-body/40 border border-secondary hover:border-primary-dark/30 hover:text-heading'}
+                `}
+              >
+                {city}
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -10,6 +10,7 @@ import { RefreshButton } from '../components/RefreshButton';
 import { useNavigate } from 'react-router-dom';
 import OptimizedImage from '../components/OptimizedImage';
 import { safeOpenExternalApp, useScrollRestoration } from '../lib/lifecycle-utils';
+import { openWhatsAppChat, BIN_USMAN_WHATSAPP_NUMBER } from '../lib/whatsapp-utils';
 
 interface Booking {
   id: string;
@@ -20,7 +21,7 @@ interface Booking {
   latitude?: number;
   longitude?: number;
   title?: string;
-  status: 'pending' | 'confirmed' | 'approved' | 'rejected' | 'cancelled' | 'failed' | 'refund_pending' | 'refunded' | 'completed';
+  status: 'pending' | 'whatsapp_pending' | 'confirmed' | 'approved' | 'rejected' | 'cancelled' | 'failed' | 'refund_pending' | 'refunded' | 'completed';
   amount: number;
   price?: number;
   checkIn: string;
@@ -155,6 +156,9 @@ export default function MyBookings() {
       case 'confirmed':
       case 'approved':
         return { label: 'Confirmed', className: 'bg-green-50 text-green-600 border-green-100' };
+      case 'whatsapp_pending':
+      case 'pending':
+        return { label: 'WhatsApp Pending', className: 'bg-amber-50 text-amber-700 border-amber-200' };
       case 'refund_pending':
         return { label: 'Refunding', className: 'bg-orange-50 text-orange-600 border-orange-100' };
       case 'refunded':
@@ -421,6 +425,19 @@ export default function MyBookings() {
                             Completed
                           </span>
                         )
+                      )}
+
+                      {booking.status === 'whatsapp_pending' && (
+                        <button
+                          onClick={() => {
+                            const msg = `Hello BIN USMAN,\n\nI am inquiring regarding my booking for ${booking.listingTitle || 'the property'} (Booking ID: ${booking.id.toUpperCase()}).\n\nThank you.`;
+                            openWhatsAppChat(msg, BIN_USMAN_WHATSAPP_NUMBER);
+                          }}
+                          className="text-[10px] font-black uppercase tracking-widest text-white bg-[#25D366] hover:bg-[#20bd5a] transition-all hover:shadow-md px-5 py-3 rounded-2xl active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 min-h-[44px]"
+                        >
+                          <MessageSquare size={13} />
+                          <span>WhatsApp</span>
+                        </button>
                       )}
 
                       <button 

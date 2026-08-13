@@ -1,16 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckCircle, ArrowLeft, ShieldCheck, CreditCard, Loader2, Calendar } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  ShieldCheck, 
+  Calendar, 
+  MessageSquare, 
+  User, 
+  Phone, 
+  Mail, 
+  Users, 
+  BedDouble, 
+  CheckCircle2, 
+  Clock, 
+  Loader2,
+  ExternalLink
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import { format } from 'date-fns';
 import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { parseISO, areIntervalsOverlapping } from 'date-fns';
 import { RefreshButton } from '../components/RefreshButton';
 import { usePersistentState, useScrollRestoration } from '../lib/lifecycle-utils';
+import { 
+  BIN_USMAN_WHATSAPP_NUMBER, 
+  BIN_USMAN_WHATSAPP_DISPLAY,
+  generateWhatsAppBookingMessage, 
+  openWhatsAppChat,
+  getWhatsAppClickToChatUrl 
+} from '../lib/whatsapp-utils';
+import { formatCityName } from '../lib/city-utils';
 
 interface Listing {
   id: string;
@@ -18,6 +39,7 @@ interface Listing {
   price: number;
   location: string;
   locationName?: string;
+  city?: string;
   latitude?: number;
   longitude?: number;
   hostCode?: string;
@@ -25,6 +47,8 @@ interface Listing {
   bookingType?: '12hrs' | '24hrs' | 'both';
   price12hrs?: number;
   price24hrs?: number;
+  guests?: number;
+  bedrooms?: number;
 }
 
 export default function BookingConfirmation() {
@@ -40,9 +64,13 @@ export default function BookingConfirmation() {
       navigate('/');
     }
   };
+
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
+  const [preparedWhatsAppMessage, setPreparedWhatsAppMessage] = useState<string>('');
+
   const [hostCode, setHostCode] = usePersistentState(`binusman_booking_host_code_${id}`, '');
   const [listingCode, setListingCode] = usePersistentState(`binusman_booking_listing_code_${id}`, '');
   
@@ -55,7 +83,23 @@ export default function BookingConfirmation() {
   const [reservedDates, setReservedDates] = useState<string[]>([]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
+  // Guest details form state
+  const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [guestCount, setGuestCount] = useState<number>(2);
+  const [roomCount, setRoomCount] = useState<number>(1);
+
   useScrollRestoration(`/booking/${id}`, !loading);
+
+  // Initialize guest info from authenticated profile
+  useEffect(() => {
+    if (user) {
+      setGuestEmail(user.email || '');
+      setGuestName(profile?.fullName || profile?.name || user.displayName || '');
+      setGuestPhone(profile?.phone || '');
+    }
+  }, [user, profile]);
 
   // Get booking details from navigation state
   const bookingData = location.state || {
@@ -67,7 +111,6 @@ export default function BookingConfirmation() {
 
   // Populate selectedDates dynamically based on initial checkIn/checkOut transition
   useEffect(() => {
-    // If we already have stored/restored dates, do not override them!
     if (selectedDates && selectedDates.length > 0) return;
 
     if (bookingData?.checkIn) {
@@ -120,7 +163,6 @@ export default function BookingConfirmation() {
     const hoursPerDay = durationType === '12h' ? 12 : 24;
     const totalHours = days * hoursPerDay;
 
-    // Parse start time (e.g. "10:00")
     let formattedEndTime = '';
     let formattedStartTime = '10:00 AM';
     try {
@@ -146,21 +188,19 @@ export default function BookingConfirmation() {
 
   const calculated = getCalculatedFields();
 
-  // Helper to generate coordinates for visual monthly calendar
+  // Helper to generate calendar days
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const daysCount = new Date(year, month + 1, 0).getDate();
-    const startDayOfWeek = new Date(year, month, 1).getDay(); // 0 is Sunday, 6 is Saturday
+    const startDayOfWeek = new Date(year, month, 1).getDay();
     
     const days: { dateStr: string; dayNum: number; isCurrentMonth: boolean }[] = [];
     
-    // Add empty placeholder objects or previous month's final days for offset
     for (let i = 0; i < startDayOfWeek; i++) {
       days.push({ dateStr: '', dayNum: 0, isCurrentMonth: false });
     }
     
-    // Add current month's days
     for (let d = 1; d <= daysCount; d++) {
       const dayISO = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       days.push({ dateStr: dayISO, dayNum: d, isCurrentMonth: true });
@@ -188,13 +228,13 @@ export default function BookingConfirmation() {
     }
 
     if (reservedDates.includes(dateStr)) {
-      toast.error('This date is already reserved/booked.');
+      toast.error('This date is already reserved.');
       return;
     }
 
     if (durationType === '12h') {
       setSelectedDates([dateStr]);
-      toast.success(`Date updated to ${format(new Date(dateStr + 'T00:00:00'), 'MMM d, yyyy')}`);
+      toast.success(`Date set to ${format(new Date(dateStr + 'T00:00:00'), 'MMM d, yyyy')}`);
       return;
     }
     if (selectedDates.includes(dateStr)) {
@@ -235,7 +275,6 @@ export default function BookingConfirmation() {
         setHostCode(data.hostCode || 'BU-HOST');
         setListingCode(data.listingCode || `LST-${docSnap.id.slice(-4).toUpperCase()}`);
         
-        // Extract blockedDates from listing
         if (data.blockedDates && Array.isArray(data.blockedDates)) {
           const formattedBlocks = data.blockedDates.map((d: any) => {
             if (typeof d === 'string') {
@@ -268,7 +307,7 @@ export default function BookingConfirmation() {
       const bookingsQuery = query(
         collection(db, bookingsPath),
         where('listingId', '==', id),
-        where('status', 'in', ['confirmed', 'approved', 'completed', 'pending'])
+        where('status', 'in', ['confirmed', 'approved', 'completed', 'pending', 'whatsapp_pending'])
       );
       
       const snapshot = await getDocs(bookingsQuery);
@@ -280,7 +319,6 @@ export default function BookingConfirmation() {
             reserved.push(dStr.slice(0, 10));
           });
         } else if (dData.checkIn && dData.checkOut) {
-          // fallback
           try {
             const start = new Date(dData.checkIn);
             const end = new Date(dData.checkOut);
@@ -292,7 +330,7 @@ export default function BookingConfirmation() {
               count++;
             }
           } catch (e) {
-            console.error("Interval calculation error in list fallback:", e);
+            console.error("Interval calculation error:", e);
           }
         }
       });
@@ -308,16 +346,32 @@ export default function BookingConfirmation() {
 
   useEffect(() => {
     fetchListing();
-  }, [id, navigate]);
+  }, [id]);
 
   const handleRefresh = async () => {
     await fetchListing();
   };
 
-  const handlePayRedirect = async () => {
+  const handleConfirmBooking = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user || !listing) return;
 
-    // Double check reserved and blocked dates to prevent force/bypass submit
+    if (isSubmitting) return; // Prevent duplicate clicks
+
+    // Validation
+    if (!guestName.trim()) {
+      toast.error('Please enter your name.');
+      return;
+    }
+    if (!guestPhone.trim()) {
+      toast.error('Please provide a contact phone number.');
+      return;
+    }
+    if (selectedDates.length === 0) {
+      toast.error('Please select at least one booking date.');
+      return;
+    }
+
     const hasBlockedDate = selectedDates.some(d => adminBlockedDates.includes(d));
     if (hasBlockedDate) {
       toast.error('One or more of your selected dates is blocked by the administrator.');
@@ -326,7 +380,7 @@ export default function BookingConfirmation() {
 
     const hasReservedDate = selectedDates.some(d => reservedDates.includes(d));
     if (hasReservedDate) {
-      toast.error('One or more of your selected dates is already reserved/booked.');
+      toast.error('One or more of your selected dates is already reserved. Please choose different dates.');
       return;
     }
 
@@ -334,18 +388,18 @@ export default function BookingConfirmation() {
     const currentTotalPrice = durationType === '12h' ? activeDailyPrice : activeDailyPrice * selectedDates.length;
     
     if (isNaN(currentTotalPrice) || currentTotalPrice <= 0) {
-      toast.error('Invalid Amount! Payment amount must be greater than 0. Please select at least one date.');
+      toast.error('Invalid booking calculation. Please select valid dates.');
       return;
     }
 
-    setIsRedirecting(true);
+    setIsSubmitting(true);
     
     try {
-      // 0. Double check for overlaps before proceeding (Server-side simulation)
+      // 1. Double check for overlaps in Firestore before saving
       const overlapQuery = query(
         collection(db, 'bookings'),
         where('listingId', '==', listing.id),
-        where('status', 'in', ['confirmed', 'approved', 'completed', 'pending'])
+        where('status', 'in', ['confirmed', 'approved', 'completed', 'pending', 'whatsapp_pending'])
       );
 
       let overlapSnapshot;
@@ -360,12 +414,10 @@ export default function BookingConfirmation() {
         const existingData = doc.data();
         const existingDates = existingData.selectedDates || [];
         
-        // Match specific dates if they overlap
         if (existingDates.length > 0 && selectedDates.length > 0) {
           return selectedDates.some(d => existingDates.includes(d));
         }
 
-        // Fallback for older entries using ranges
         const existingCheckIn = existingData.checkIn || existingData.startDate;
         const existingCheckOut = existingData.checkOut || existingData.endDate;
         const newCheckIn = calculated.startDate;
@@ -379,37 +431,49 @@ export default function BookingConfirmation() {
 
       if (isOverlapping) {
         toast.error('These dates are already booked. Please choose different dates.');
-        setIsRedirecting(false);
+        setIsSubmitting(false);
         return;
       }
 
-      // 1. Create a Firestore booking document first (Requirements)
+      const displayCity = formatCityName(listing.city || listing.location);
+      const displayLocation = listing.location ? `${listing.location}, ${displayCity}` : displayCity;
+
+      const checkInFormatted = calculated.startDate 
+        ? format(new Date(calculated.startDate + 'T00:00:00'), 'MMM d, yyyy') + (calculated.startTimeStr ? ` (${calculated.startTimeStr})` : '')
+        : 'N/A';
+      const checkOutFormatted = calculated.endDate 
+        ? format(new Date(calculated.endDate + 'T00:00:00'), 'MMM d, yyyy') + (calculated.endTime ? ` (${calculated.endTime})` : '')
+        : 'N/A';
+
+      // 2. Create the Firestore booking with status "whatsapp_pending"
       let bookingRef;
       try {
         bookingRef = await addDoc(collection(db, 'bookings'), {
           userId: user.uid,
-          userName: profile?.fullName || user.displayName || 'Guest',
-          userEmail: user.email,
-          userPhone: profile?.phone || '',
+          userName: guestName.trim(),
+          guestName: guestName.trim(),
+          userEmail: user.email || guestEmail.trim(),
+          userPhone: guestPhone.trim(),
+          phone: guestPhone.trim(),
           listingId: listing.id,
-          listingTitle: listing.title, // Keep consistent with UI
-          title: listing.title, // As per requirement
+          listingTitle: listing.title,
+          title: listing.title,
           location: listing.location,
           locationName: listing.locationName || null,
-          latitude: listing.latitude || null,
-          longitude: listing.longitude || null,
+          city: displayCity,
           amount: currentTotalPrice,
           totalPrice: currentTotalPrice,
-          price: activeDailyPrice, // Use active pricing rate
+          price: activeDailyPrice,
           checkIn: calculated.startDate,
           checkOut: calculated.endDate,
           nights: selectedDates.length,
-          status: 'pending',
-          paymentStatus: 'pending',
+          status: 'whatsapp_pending',
+          whatsappNumber: BIN_USMAN_WHATSAPP_NUMBER,
           hostCode: hostCode,
           listingCode: listingCode,
+          guests: guestCount,
+          rooms: roomCount,
           
-          // Enhanced parameters
           startDate: calculated.startDate,
           endDate: calculated.endDate,
           selectedDates: selectedDates,
@@ -425,114 +489,166 @@ export default function BookingConfirmation() {
         throw err;
       }
 
-      console.log("Booking document created in Firestore with status pending:", bookingRef.id);
+      console.log("Firestore booking created with whatsapp_pending status:", bookingRef.id);
 
-      // Create admin notification (failsafe to not disrupt the main booking/payment flow if notifications fail)
+      // 3. Create Admin Notification
       try {
-        const displayDuration = durationType === '12h' ? '12hrs' : '24hrs';
         await addDoc(collection(db, 'notifications'), {
-          title: "New Booking Request",
-          message: `${listing.title} has been booked for ${displayDuration} by user.`,
+          title: "New WhatsApp Booking Request",
+          message: `${guestName.trim()} requested to book ${listing.title} for ${selectedDates.length} ${selectedDates.length === 1 ? 'day' : 'days'}. Total: Rs. ${currentTotalPrice.toLocaleString()}`,
           timestamp: serverTimestamp(),
-          read: false
+          read: false,
+          bookingId: bookingRef.id,
+          listingId: listing.id
         });
-        console.log("Admin notification created successfully in Firestore.");
       } catch (notifErr) {
-        console.error("Safe notification warning: Failed to create admin notification in Firestore:", notifErr);
+        console.error("Notification warning:", notifErr);
       }
 
-      // Register with backend memory to allow checkout simulation flow
-      try {
-        await fetch('/api/bookings/initiate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bookingId: bookingRef.id,
-            userId: user.uid,
-            listingId: listing.id,
-            listingTitle: listing.title,
-            amount: currentTotalPrice,
-            checkIn: calculated.startDate,
-            checkOut: calculated.endDate,
-            nights: selectedDates.length
-          })
-        });
-      } catch (err) {
-        console.error("Backend track registration warning:", err);
-      }
-
-      toast.success("Booking Created! Redirecting to Cashmaal Payment Gateway..."); 
-      
-      // Submit form dynamically to Cashmaal as requested!
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = 'https://www.cashmaal.com/Pay/';
-
-      const fields: Record<string, string> = {
-        web_id: '11354',
-        amount: String(currentTotalPrice),
-        currency: 'PKR',
-        track_id: bookingRef.id,
-        client_email: user.email || '',
-        success_url: `${window.location.origin}/payment/status/processing?id=${bookingRef.id}`,
-        cancel_url: `${window.location.origin}/payment/status/cancelled?id=${bookingRef.id}`
-      };
-
-      Object.keys(fields).forEach(key => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = fields[key];
-        form.appendChild(input);
+      // 4. Generate the official WhatsApp message
+      const message = generateWhatsAppBookingMessage({
+        propertyName: listing.title,
+        location: displayLocation,
+        checkIn: checkInFormatted,
+        checkOut: checkOutFormatted,
+        guests: guestCount,
+        rooms: roomCount,
+        nights: selectedDates.length,
+        totalAmount: currentTotalPrice,
+        guestName: guestName.trim(),
+        phone: guestPhone.trim(),
+        email: user.email || guestEmail.trim(),
+        listingId: listing.id,
+        durationType: durationType === '12h' ? '12 Hours (Half Day)' : '24 Hours (Full Day)',
+        startTime: calculated.startTimeStr
       });
 
-      document.body.appendChild(form);
-      form.submit();
-      
+      setPreparedWhatsAppMessage(message);
+      setConfirmedBookingId(bookingRef.id);
+
+      // 5. Open WhatsApp via official click-to-chat URL
+      openWhatsAppChat(message, BIN_USMAN_WHATSAPP_NUMBER);
+
+      // 6. Show clear user confirmation toast
+      toast.success("Your booking request has been prepared. Please send the WhatsApp message to complete your booking.", {
+        duration: 8000
+      });
+
     } catch (error) {
-      console.error("Payment redirect error:", error);
-      toast.error('Booking creation failed. Please try again.');
-      setIsRedirecting(false);
+      console.error("Booking submission error:", error);
+      toast.error('Booking request could not be completed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (loading) return <div className="h-96 flex items-center justify-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="h-96 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin text-primary-dark" size={36} />
+        <span className="text-xs font-black uppercase tracking-widest text-body/40">Loading Booking Information...</span>
+      </div>
+    );
+  }
+
   if (!listing) return null;
 
-  const displayCheckIn = (() => {
-    return calculated.startDate ? format(new Date(calculated.startDate + 'T00:00:00'), 'PPP') : 'Select Date';
-  })();
-  
-  const displayCheckOut = (() => {
-    return calculated.endDate ? format(new Date(calculated.endDate + 'T00:00:00'), 'PPP') : 'Select Date';
-  })();
-
+  const displayCheckIn = calculated.startDate ? format(new Date(calculated.startDate + 'T00:00:00'), 'PPP') : 'Select Date';
+  const displayCheckOut = calculated.endDate ? format(new Date(calculated.endDate + 'T00:00:00'), 'PPP') : 'Select Date';
   const activeDailyPrice = durationType === '12h' ? (listing.price12hrs || listing.price) : (listing.price24hrs || listing.price);
   const currentTotalPrice = durationType === '12h' ? activeDailyPrice : activeDailyPrice * selectedDates.length;
+  const displayCity = formatCityName(listing.city || listing.location);
 
-  if (isRedirecting) {
+  // If already confirmed and prepared, show clean success screen with WhatsApp action
+  if (confirmedBookingId) {
+    const whatsAppUrl = getWhatsAppClickToChatUrl(preparedWhatsAppMessage, BIN_USMAN_WHATSAPP_NUMBER);
+
     return (
-      <div className="max-w-xl mx-auto py-24 text-center space-y-8 animate-in fade-in zoom-in duration-500">
-        <div className="relative">
-          <div className="w-24 h-24 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <CreditCard className="text-primary animate-pulse" size={32} />
-          </div>
-        </div>
+      <div className="max-w-2xl mx-auto py-12 space-y-8 animate-in fade-in zoom-in-95 duration-500 text-center">
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-24 h-24 bg-green-500/10 border-2 border-green-500/30 rounded-[2rem] flex items-center justify-center mx-auto text-green-600 shadow-xl"
+        >
+          <CheckCircle2 size={48} />
+        </motion.div>
+
         <div className="space-y-3">
-          <h1 className="text-3xl font-black tracking-tighter uppercase">Going to <span className="text-primary italic font-black">Cashmaal</span></h1>
-          <p className="text-zinc-500 font-medium">Please wait...</p>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-50 text-green-700 border border-green-200 text-[10px] font-black uppercase tracking-widest">
+            <MessageSquare size={12} />
+            <span>Booking Request Prepared</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-semibold uppercase tracking-tight text-heading">
+            WhatsApp <span className="text-primary-dark italic font-normal">Confirmation</span>
+          </h1>
+          <p className="text-body text-sm max-w-md mx-auto leading-relaxed font-medium">
+            Your booking request has been prepared. Please send the WhatsApp message to complete your booking.
+          </p>
         </div>
-        <div className="pt-4 flex items-center justify-center gap-2 text-primary font-bold text-sm">
-          <ShieldCheck size={18} />
-          <span>Safe Payment with Cashmaal</span>
+
+        {/* WhatsApp Direct Action Button */}
+        <div className="p-8 bg-white rounded-[2.5rem] border border-secondary shadow-lg space-y-6 text-left">
+          <div className="flex items-center justify-between border-b border-secondary/40 pb-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-body/40">Official Concierge</p>
+              <p className="text-sm font-black text-heading tracking-wide">{BIN_USMAN_WHATSAPP_DISPLAY}</p>
+            </div>
+            <span className="text-[9px] font-black uppercase px-3 py-1 bg-primary/10 text-primary-dark rounded-full">
+              ID: {confirmedBookingId.slice(-6).toUpperCase()}
+            </span>
+          </div>
+
+          <div className="bg-zinc-50 p-4 rounded-2xl border border-secondary/30 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-body/50">Property Details</p>
+            <p className="text-base font-bold text-heading">{listing.title}</p>
+            <p className="text-xs text-body/70 font-medium">{listing.location}, {displayCity}</p>
+            <div className="flex flex-wrap gap-4 pt-2 text-xs font-semibold text-heading">
+              <span>🗓️ {displayCheckIn} — {displayCheckOut}</span>
+              <span>👤 {guestCount} Guests • {roomCount} Room</span>
+              <span>💰 Total: Rs. {currentTotalPrice.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <a
+            href={whatsAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              toast.info("Opening WhatsApp...");
+            }}
+            className="w-full py-5 px-8 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg flex items-center justify-center gap-3 transition-all duration-300 active:scale-[0.98] cursor-pointer"
+          >
+            <MessageSquare size={18} />
+            <span>Open WhatsApp Chat</span>
+            <ExternalLink size={14} className="opacity-70" />
+          </a>
+
+          <p className="text-center text-[10px] text-body/40 font-bold uppercase tracking-wider">
+            If WhatsApp didn't open automatically, click the button above to send your message.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+          <button
+            onClick={() => navigate('/my-bookings')}
+            className="primary-button px-10 py-4 text-[10px] font-black uppercase tracking-widest"
+          >
+            View My Bookings
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="secondary-button px-10 py-4 text-[10px] font-black uppercase tracking-widest"
+          >
+            Browse More Properties
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+    <div className="max-w-5xl mx-auto space-y-10 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+      {/* Top Bar */}
       <div className="flex items-center justify-between z-10">
         <button
           onClick={handleBack}
@@ -544,371 +660,400 @@ export default function BookingConfirmation() {
         <RefreshButton onRefresh={handleRefresh} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left: Summary */}
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: Property Summary & Guest Information (5 cols) */}
+        <div className="lg:col-span-5 space-y-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex items-center gap-2 text-primary-dark">
               <Calendar size={20} />
-              <h2 className="text-xl font-black uppercase tracking-tight text-heading">Booking Details</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-heading">Reservation Summary</h2>
             </div>
-            <p className="text-body font-medium text-sm">Check your dates and apartment info.</p>
+            <p className="text-body font-medium text-xs">Review the property details and your stay calculation.</p>
           </div>
 
-          <div className="glass-card bg-primary/5 border-primary/20 space-y-6 relative overflow-hidden bg-white/80">
-             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 blur-2xl -z-10 rounded-full" />
-             <div className="space-y-4">
-               <div>
-                 <p className="text-[10px] text-primary uppercase font-black tracking-widest mb-1">Apartment</p>
-                 <h3 className="text-xl font-black text-heading uppercase">{listing.title}</h3>
-                 <p className="text-body font-bold text-sm italic">{listing.location}</p>
-               </div>
-               
-               <div className="grid grid-cols-2 gap-4 py-4 border-y border-secondary/30">
-                 <div className="space-y-1">
-                   <p className="text-[10px] text-body/60 uppercase font-black tracking-widest">Start Date</p>
-                   <p className="font-black text-heading text-sm">{displayCheckIn}</p>
-                 </div>
-                 <div className="space-y-1">
-                   <p className="text-[10px] text-body/60 uppercase font-black tracking-widest">End Date (Estimate)</p>
-                   <p className="font-black text-heading text-sm">{displayCheckOut}</p>
-                 </div>
-               </div>
+          {/* Property Card */}
+          <div className="bg-white rounded-[2rem] border border-secondary p-6 space-y-6 shadow-sm relative overflow-hidden">
+            <div className="space-y-3">
+              <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary-dark opacity-80">{displayCity}</span>
+              <h3 className="text-xl font-bold text-heading uppercase tracking-tight leading-snug">{listing.title}</h3>
+              <p className="text-xs font-medium text-body/60">{listing.location}</p>
+            </div>
 
-               <div className="flex items-center justify-between py-2">
-                 <div className="flex flex-col">
-                   <span className="text-[10px] text-body/60 uppercase font-black tracking-widest">Price Info</span>
-                   <span className="font-bold text-body">
-                     Rs. {activeDailyPrice.toLocaleString()} {durationType === '12h' ? 'per 12 hours' : `x ${selectedDates.length} days (${calculated.totalHours} hrs)`}
-                   </span>
-                 </div>
-                 <span className="text-lg font-black text-heading">Rs. {currentTotalPrice.toLocaleString()}</span>
-               </div>
-             </div>
+            <div className="grid grid-cols-2 gap-4 py-4 border-y border-secondary/40">
+              <div className="space-y-1">
+                <p className="text-[9px] text-body/50 uppercase font-black tracking-widest">Check-In</p>
+                <p className="font-bold text-heading text-xs">{displayCheckIn}</p>
+                {calculated.startTimeStr && (
+                  <p className="text-[10px] text-primary-dark font-semibold">{calculated.startTimeStr}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-body/50 uppercase font-black tracking-widest">Check-Out</p>
+                <p className="font-bold text-heading text-xs">{displayCheckOut}</p>
+                {calculated.endTime && (
+                  <p className="text-[10px] text-body/50 font-medium truncate" title={calculated.endTime}>{calculated.endTime}</p>
+                )}
+              </div>
+            </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-secondary/30">
-              <span className="text-body font-black uppercase text-xs tracking-widest">Total to pay</span>
-              <span className="text-3xl font-black text-primary">Rs. {currentTotalPrice.toLocaleString()}</span>
+            <div className="space-y-2.5 text-xs">
+              <div className="flex justify-between items-center text-body/70 font-medium">
+                <span>Duration</span>
+                <span className="font-bold text-heading">
+                  {selectedDates.length} {selectedDates.length === 1 ? 'Day' : 'Days'} ({calculated.totalHours} hrs)
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-body/70 font-medium">
+                <span>Rate</span>
+                <span className="font-bold text-heading">
+                  Rs. {activeDailyPrice.toLocaleString()} {durationType === '12h' ? '/ 12h' : '/ day'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-body/70 font-medium">
+                <span>Guests & Rooms</span>
+                <span className="font-bold text-heading">{guestCount} Guests • {roomCount} Room</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-secondary/40">
+              <span className="text-body font-black uppercase text-[10px] tracking-widest">Estimated Total</span>
+              <span className="text-2xl font-black text-primary-dark">Rs. {currentTotalPrice.toLocaleString()}</span>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-4 bg-primary/5 border border-primary/20 rounded-xl">
-            <ShieldCheck className="text-primary shrink-0" size={20} />
-            <p className="text-xs text-body font-medium leading-relaxed">
-              We are taking you to Cashmaal. Your info is safe and we don't save your card details.
-            </p>
+          {/* WhatsApp Guarantee Box */}
+          <div className="p-5 bg-green-500/5 border border-green-500/20 rounded-2xl flex items-start gap-4 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-[#25D366]/10 flex items-center justify-center text-[#25D366] shrink-0">
+              <MessageSquare size={20} />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-heading">Direct WhatsApp Booking</h4>
+              <p className="text-[11px] text-body/70 leading-relaxed font-medium">
+                No online payment required. Clicking <strong>Confirm Booking</strong> reserves your dates and connects you directly with our concierge at <strong className="text-heading">{BIN_USMAN_WHATSAPP_DISPLAY}</strong>.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Right: Payment Action */}
-        <div className="space-y-6">
+        {/* Right Column: Interactive Schedule & Guest Details Form (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-primary">
-              <CreditCard size={20} />
-              <h2 className="text-xl font-black uppercase tracking-tight text-heading">Payment & Setup</h2>
+            <div className="flex items-center gap-2 text-primary-dark">
+              <User size={20} />
+              <h2 className="text-xl font-black uppercase tracking-tight text-heading">Guest & Schedule Setup</h2>
             </div>
-            <p className="text-body font-medium text-sm">Configure your booking duration and codes.</p>
+            <p className="text-body font-medium text-xs">Verify your personal details and customize dates before confirming.</p>
           </div>
 
-          <div className="glass-card flex flex-col items-center justify-center gap-8 py-10 relative overflow-hidden group bg-white/80">
-            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                await handlePayRedirect();
-              }}
-              className="w-full relative z-10 px-6 space-y-5"
-            >
-              <div className="space-y-4 text-left border-b border-secondary/30 pb-4 mb-4">
-                {/* Visual Premium Interactive Calendar with Blocked & Reserved Dates */}
-                <div className="space-y-3 bg-zinc-50 border border-secondary/35 p-5 rounded-2xl relative">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Interactive Calendar</span>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const prev = new Date(currentMonth);
-                          prev.setMonth(prev.getMonth() - 1);
-                          setCurrentMonth(prev);
-                        }}
-                        className="p-1 px-2.5 bg-white border border-secondary/40 rounded-lg text-xs font-black text-heading hover:bg-primary/5 transition-colors cursor-pointer"
-                      >
-                        ←
-                      </button>
-                      <span className="text-xs font-black uppercase text-heading px-2 min-w-[90px] text-center">
-                        {format(currentMonth, 'MMMM yyyy')}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = new Date(currentMonth);
-                          next.setMonth(next.getMonth() + 1);
-                          setCurrentMonth(next);
-                        }}
-                        className="p-1 px-2.5 bg-white border border-secondary/40 rounded-lg text-xs font-black text-heading hover:bg-primary/5 transition-colors cursor-pointer"
-                      >
-                        →
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-widest text-body/40 mb-1">
-                    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1.5 animate-in fade-in duration-300">
-                    {getDaysInMonth(currentMonth).map((day, idx) => {
-                      if (!day.isCurrentMonth) {
-                        return <div key={`empty-${idx}`} className="h-8" />;
-                      }
-
-                      const todayStr = format(new Date(), 'yyyy-MM-dd');
-                      const isPast = day.dateStr < todayStr;
-                      const isBlocked = adminBlockedDates.includes(day.dateStr);
-                      const isReserved = reservedDates.includes(day.dateStr);
-                      const isSelected = selectedDates.includes(day.dateStr);
-
-                      let cellStyle = "h-8 w-full text-xs font-bold rounded-lg transition-all flex items-center justify-center relative cursor-pointer ";
-                      let titleStr = format(new Date(day.dateStr + 'T00:00:00'), 'MMM d, yyyy');
-                      let isDisabled = false;
-
-                      if (isPast) {
-                        cellStyle += "bg-zinc-100 text-zinc-300 opacity-40 cursor-not-allowed";
-                        isDisabled = true;
-                        titleStr += " - Past Date";
-                      } else if (isBlocked) {
-                        cellStyle += "bg-zinc-800 text-zinc-400 opacity-60 line-through cursor-not-allowed border border-secondary/30";
-                        isDisabled = true;
-                        titleStr += " - Manually Blocked by Admin";
-                      } else if (isReserved) {
-                        cellStyle += "border-2 border-dashed border-red-500 bg-red-50 text-red-600 font-bold line-through cursor-not-allowed";
-                        isDisabled = true;
-                        titleStr += " - Already Reserved";
-                      } else if (isSelected) {
-                        cellStyle += "bg-[#9c27b0] text-white font-black scale-105 shadow-sm hover:opacity-95";
-                      } else {
-                        cellStyle += "bg-white hover:bg-primary/10 text-heading border border-secondary/30 hover:scale-105 active:scale-95";
-                      }
-
-                      return (
-                        <button
-                          key={`day-${day.dateStr}`}
-                          type="button"
-                          disabled={isDisabled}
-                          title={titleStr}
-                          onClick={() => {
-                            if (isSelected) {
-                              handleRemoveDate(day.dateStr);
-                            } else {
-                              handleAddDate(day.dateStr);
-                            }
-                          }}
-                          className={cellStyle}
-                        >
-                          {day.dayNum}
-                          {isReserved && (
-                            <span className="absolute bottom-0.5 w-1 h-1 bg-red-500 rounded-full" />
-                          )}
-                          {isBlocked && (
-                            <span className="absolute bottom-0.5 w-1 w-[3px] h-[3px] bg-zinc-600 rounded-full" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Calendar Legend */}
-                  <div className="flex flex-wrap items-center justify-between gap-1 pt-3 border-t border-secondary/30 text-[9px] font-black text-body/50 uppercase tracking-widest mt-2 px-1">
-                    <div className="flex items-center gap-1">
-                      <span className="w-2.5 h-2.5 bg-white border border-secondary/30 rounded-md inline-block shadow-sm" />
-                      <span>Free</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-2.5 h-2.5 bg-[#9c27b0] rounded-md inline-block" />
-                      <span>Selected</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-2.5 h-2.5 bg-zinc-800 border border-secondary/40 rounded-md inline-block" />
-                      <span>Blocked</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-2.5 h-2.5 bg-red-50 border border-red-400 rounded-md inline-block" />
-                      <span className="text-red-500 font-bold">Booked</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Date Picker Multi selection helper */}
-                <div className="space-y-2 pt-2 border-t border-secondary/20">
-                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Or Add Date Manually</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      className="flex-1 bg-background/30 border border-secondary/50 rounded-xl px-4 py-3 text-xs font-bold text-heading focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all"
-                      value={newDateInput}
-                      onChange={(e) => setNewDateInput(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleAddDate(newDateInput);
-                        setNewDateInput('');
-                      }}
-                      className="bg-primary/20 hover:bg-primary/30 text-primary font-black px-4 rounded-xl text-[10px] uppercase tracking-widest transition-colors border border-primary/20 cursor-pointer"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  
-                  {/* Selected list */}
-                  <div className="mt-2 space-y-1.5">
-                    <p className="text-[9px] text-body/45 uppercase font-black tracking-wider">Selected Dates ({selectedDates.length}):</p>
-                    <div className="flex flex-wrap gap-1.5 p-2 bg-zinc-50 rounded-lg border border-secondary/30 max-h-32 overflow-y-auto">
-                      {selectedDates.map((d) => (
-                        <span key={d} className="inline-flex items-center gap-1.5 bg-white border border-secondary px-2.5 py-1 rounded-lg text-[10px] font-bold text-heading shadow-sm">
-                          {format(new Date(d + 'T00:00:00'), 'MMM d, yyyy')}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDate(d)}
-                            className="text-red-500 hover:text-red-700 font-bold ml-1 transition-colors hover:scale-110"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                      {selectedDates.length === 0 && (
-                        <p className="text-[10px] text-body/30 italic p-1">No dates selected. Please add dates.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Time Picker */}
+          <form onSubmit={handleConfirmBooking} className="bg-white rounded-[2rem] border border-secondary p-6 sm:p-8 space-y-6 shadow-sm">
+            {/* Guest Information Section */}
+            <div className="space-y-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary-dark">1. Guest Contact Information</span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Start Time (24h-format)</label>
-                  <input
-                    type="time"
-                    required
-                    className="w-full bg-background/30 border border-secondary/50 rounded-xl px-4 py-3 text-xs font-bold text-heading focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                  />
-                </div>
-
-                {/* Duration selector */}
-                {listing.bookingType === '12hrs' || listing.bookingType === '24hrs' ? (
-                  <div className="space-y-1.5 bg-zinc-50 border border-secondary/20 p-4 rounded-xl">
-                    <label className="text-[10px] text-body/40 uppercase font-black tracking-widest ml-1">Daily Duration Type</label>
-                    <p className="text-xs font-black text-heading ml-1">
-                      {listing.bookingType === '12hrs' ? '12 Hours Booking (Single Day Restrained)' : '24 Hours Booking (Multi-Day Allowed)'}
-                    </p>
-                    <p className="text-[9px] text-body/45 ml-1 leading-normal italic">
-                      This property is strictly configured to accept {listing.bookingType === '12hrs' ? 'half-day (12 hours)' : 'full-day (24 hours)'} stays.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Daily Duration Type (Choose between 12h / 24h)</label>
-                    <select
-                      className="w-full bg-background/30 border border-secondary/50 rounded-xl px-4 py-3 text-xs font-bold text-heading focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all cursor-pointer"
-                      value={durationType}
-                      onChange={(e) => setDurationType(e.target.value as '12h' | '24h')}
-                    >
-                      <option value="12h">12 hours per day (Single-day only)</option>
-                      <option value="24h">24 hours per day (Multi-day allowed)</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Calculated fields */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Total Hours</label>
-                    <input
-                      type="text"
-                      readOnly
-                      className="w-full bg-zinc-100 border border-secondary/50 rounded-xl px-4 py-3 text-xs font-bold text-body/60 cursor-not-allowed"
-                      value={`${calculated.totalHours} hours`}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Leave Time (Estimated)</label>
-                    <input
-                      type="text"
-                      readOnly
-                      className="w-full bg-zinc-100 border border-secondary/50 rounded-xl px-4 py-3 text-xs font-bold text-primary cursor-not-allowed overflow-hidden text-ellipsis whitespace-nowrap"
-                      value={calculated.endTime || 'N/A'}
-                      title={calculated.endTime}
-                    />
-                  </div>
-                </div>
-
-                {/* Host and Listing code */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Host Code (Auto-populated)</label>
+                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
+                    <User size={11} />
+                    <span>Guest Full Name</span>
+                  </label>
                   <input
                     type="text"
                     required
-                    disabled
-                    readOnly
-                    placeholder="BU-HOST"
-                    className="w-full bg-zinc-100 border border-secondary/30 rounded-xl px-4 py-3 text-xs font-bold text-body/60 cursor-not-allowed transition-all"
-                    value={hostCode}
+                    placeholder="Enter your full name"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    className="w-full bg-background/50 border border-secondary rounded-xl px-4 py-3 text-xs font-bold text-heading focus:outline-none focus:ring-2 focus:ring-primary-dark/20 transition-all"
                   />
                 </div>
+
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Listing Code (Auto-populated)</label>
+                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
+                    <Phone size={11} />
+                    <span>WhatsApp / Phone Number</span>
+                  </label>
                   <input
-                    type="text"
+                    type="tel"
                     required
-                    disabled
-                    readOnly
-                    placeholder="LST-XXX"
-                    className="w-full bg-zinc-100 border border-secondary/30 rounded-xl px-4 py-3 text-xs font-bold text-body/60 cursor-not-allowed transition-all"
-                    value={listingCode}
+                    placeholder="e.g. +92 300 1234567"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    className="w-full bg-background/50 border border-secondary rounded-xl px-4 py-3 text-xs font-bold text-heading focus:outline-none focus:ring-2 focus:ring-primary-dark/20 transition-all"
                   />
                 </div>
               </div>
 
-              <button 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5 sm:col-span-1">
+                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
+                    <Mail size={11} />
+                    <span>Email Address</span>
+                  </label>
+                  <input
+                    type="email"
+                    readOnly
+                    disabled
+                    value={user?.email || guestEmail}
+                    className="w-full bg-zinc-100 border border-secondary/40 rounded-xl px-4 py-3 text-xs font-bold text-body/50 cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
+                    <Users size={11} />
+                    <span>Total Guests</span>
+                  </label>
+                  <div className="flex items-center border border-secondary rounded-xl overflow-hidden bg-background/50">
+                    <button
+                      type="button"
+                      onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
+                      className="px-3 py-2.5 text-heading font-black hover:bg-neutral-100 transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className="flex-1 text-center font-bold text-xs text-heading">{guestCount}</span>
+                    <button
+                      type="button"
+                      onClick={() => setGuestCount(guestCount + 1)}
+                      className="px-3 py-2.5 text-heading font-black hover:bg-neutral-100 transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
+                    <BedDouble size={11} />
+                    <span>Rooms</span>
+                  </label>
+                  <div className="flex items-center border border-secondary rounded-xl overflow-hidden bg-background/50">
+                    <button
+                      type="button"
+                      onClick={() => setRoomCount(Math.max(1, roomCount - 1))}
+                      className="px-3 py-2.5 text-heading font-black hover:bg-neutral-100 transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className="flex-1 text-center font-bold text-xs text-heading">{roomCount}</span>
+                    <button
+                      type="button"
+                      onClick={() => setRoomCount(roomCount + 1)}
+                      className="px-3 py-2.5 text-heading font-black hover:bg-neutral-100 transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Calendar & Dates Section */}
+            <div className="space-y-4 pt-4 border-t border-secondary/40">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary-dark">2. Date & Schedule Selection</span>
+
+              <div className="space-y-3 bg-background/40 border border-secondary/50 p-5 rounded-2xl relative">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">Interactive Calendar</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const prev = new Date(currentMonth);
+                        prev.setMonth(prev.getMonth() - 1);
+                        setCurrentMonth(prev);
+                      }}
+                      className="p-1 px-2.5 bg-white border border-secondary rounded-lg text-xs font-black text-heading hover:bg-primary-dark/5 transition-colors cursor-pointer"
+                    >
+                      ←
+                    </button>
+                    <span className="text-xs font-black uppercase text-heading px-2 min-w-[100px] text-center">
+                      {format(currentMonth, 'MMMM yyyy')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = new Date(currentMonth);
+                        next.setMonth(next.getMonth() + 1);
+                        setCurrentMonth(next);
+                      }}
+                      className="p-1 px-2.5 bg-white border border-secondary rounded-lg text-xs font-black text-heading hover:bg-primary-dark/5 transition-colors cursor-pointer"
+                    >
+                      →
+                    </button>
+                  </div>
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-widest text-body/40 mb-1">
+                  <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1.5">
+                  {getDaysInMonth(currentMonth).map((day, idx) => {
+                    if (!day.isCurrentMonth) {
+                      return <div key={`empty-${idx}`} className="h-8" />;
+                    }
+
+                    const todayStr = format(new Date(), 'yyyy-MM-dd');
+                    const isPast = day.dateStr < todayStr;
+                    const isBlocked = adminBlockedDates.includes(day.dateStr);
+                    const isReserved = reservedDates.includes(day.dateStr);
+                    const isSelected = selectedDates.includes(day.dateStr);
+
+                    let cellStyle = "h-8 w-full text-xs font-bold rounded-lg transition-all flex items-center justify-center relative cursor-pointer ";
+                    let titleStr = format(new Date(day.dateStr + 'T00:00:00'), 'MMM d, yyyy');
+                    let isDisabled = false;
+
+                    if (isPast) {
+                      cellStyle += "bg-zinc-100 text-zinc-300 opacity-40 cursor-not-allowed";
+                      isDisabled = true;
+                      titleStr += " - Past Date";
+                    } else if (isBlocked) {
+                      cellStyle += "bg-zinc-800 text-zinc-400 opacity-60 line-through cursor-not-allowed border border-secondary/30";
+                      isDisabled = true;
+                      titleStr += " - Blocked by Admin";
+                    } else if (isReserved) {
+                      cellStyle += "border-2 border-dashed border-red-500 bg-red-50 text-red-600 font-bold line-through cursor-not-allowed";
+                      isDisabled = true;
+                      titleStr += " - Already Reserved";
+                    } else if (isSelected) {
+                      cellStyle += "bg-primary-dark text-white font-black scale-105 shadow-sm";
+                    } else {
+                      cellStyle += "bg-white hover:bg-primary-dark/10 text-heading border border-secondary/40 hover:scale-105 active:scale-95";
+                    }
+
+                    return (
+                      <button
+                        key={`day-${day.dateStr}`}
+                        type="button"
+                        disabled={isDisabled}
+                        title={titleStr}
+                        onClick={() => {
+                          if (isSelected) {
+                            handleRemoveDate(day.dateStr);
+                          } else {
+                            handleAddDate(day.dateStr);
+                          }
+                        }}
+                        className={cellStyle}
+                      >
+                        {day.dayNum}
+                        {isReserved && (
+                          <span className="absolute bottom-0.5 w-1 h-1 bg-red-500 rounded-full" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Calendar Legend */}
+                <div className="flex flex-wrap items-center justify-between gap-1 pt-3 border-t border-secondary/30 text-[9px] font-black text-body/50 uppercase tracking-widest mt-2 px-1">
+                  <div className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 bg-white border border-secondary/40 rounded-md inline-block shadow-sm" />
+                    <span>Available</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 bg-primary-dark rounded-md inline-block" />
+                    <span>Selected</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 bg-zinc-800 border border-secondary/40 rounded-md inline-block" />
+                    <span>Blocked</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 bg-red-50 border border-red-400 rounded-md inline-block" />
+                    <span className="text-red-500 font-bold">Booked</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selected Dates Display */}
+              <div className="space-y-2">
+                <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">
+                  Selected Stay Dates ({selectedDates.length})
+                </label>
+                <div className="flex flex-wrap gap-1.5 p-3 bg-background/50 rounded-xl border border-secondary/50 max-h-28 overflow-y-auto">
+                  {selectedDates.map((d) => (
+                    <span key={d} className="inline-flex items-center gap-1.5 bg-white border border-secondary px-3 py-1 rounded-lg text-[10px] font-bold text-heading shadow-sm">
+                      {format(new Date(d + 'T00:00:00'), 'MMM d, yyyy')}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDate(d)}
+                        className="text-red-500 hover:text-red-700 font-bold ml-1 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {selectedDates.length === 0 && (
+                    <p className="text-[10px] text-body/40 italic p-1">No dates selected. Please select dates from the calendar.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Start Time and Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
+                    <Clock size={11} />
+                    <span>Estimated Arrival Time</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full bg-background/50 border border-secondary rounded-xl px-4 py-3 text-xs font-bold text-heading focus:outline-none focus:ring-2 focus:ring-primary-dark/20 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1">
+                    Daily Duration Type
+                  </label>
+                  {listing.bookingType === '12hrs' || listing.bookingType === '24hrs' ? (
+                    <div className="w-full bg-zinc-100 border border-secondary/50 rounded-xl px-4 py-3 text-xs font-bold text-heading">
+                      {listing.bookingType === '12hrs' ? '12 Hours (Single-Day Only)' : '24 Hours (Full Stay)'}
+                    </div>
+                  ) : (
+                    <select
+                      value={durationType}
+                      onChange={(e) => setDurationType(e.target.value as '12h' | '24h')}
+                      className="w-full bg-background/50 border border-secondary rounded-xl px-4 py-3 text-xs font-bold text-heading focus:outline-none focus:ring-2 focus:ring-primary-dark/20 transition-all cursor-pointer"
+                    >
+                      <option value="12h">12 Hours Stay (Single Day)</option>
+                      <option value="24h">24 Hours Stay (Multi-Day)</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Final Action Button */}
+            <div className="pt-4 border-t border-secondary/40 space-y-3">
+              <button
                 type="submit"
-                disabled={isRedirecting}
-                style={{
-                  backgroundColor: '#9c27b0',
-                  color: 'white',
-                  padding: '16px 24px',
-                  border: 'none',
-                  borderRadius: '12px',
-                  cursor: isRedirecting ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 900,
-                  width: '100%',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  boxShadow: '0 10px 25px -5px rgba(156, 39, 176, 0.3)',
-                  transition: 'all 0.3s ease',
-                }}
-                className="hover:translate-y-[-2px] active:translate-y-[1px] duration-300"
+                disabled={isSubmitting || selectedDates.length === 0}
+                className="w-full py-5 px-8 rounded-2xl bg-primary-dark hover:bg-heading text-white font-black text-xs uppercase tracking-[0.25em] shadow-xl flex items-center justify-center gap-3 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {isRedirecting ? (
-                  <span className="flex items-center justify-center gap-3">
-                    <Loader2 className="animate-spin" size={20} />
-                    Processing...
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    Preparing Booking Request...
                   </span>
                 ) : (
-                  "Pay with Cashmaal (EasyPaisa/JazzCash / bank transfer)"
+                  <span className="flex items-center gap-2">
+                    <MessageSquare size={16} />
+                    Confirm Booking
+                  </span>
                 )}
               </button>
-            </form>
-            
-            <div className="flex items-center justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all relative z-10">
-               <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
-               <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6" />
+
+              <p className="text-center text-[10px] text-body/50 font-bold uppercase tracking-wider">
+                No credit card or online payment required • Instant confirmation on WhatsApp
+              </p>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>

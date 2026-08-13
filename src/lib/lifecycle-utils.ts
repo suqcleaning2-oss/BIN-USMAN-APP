@@ -30,7 +30,7 @@ export function usePersistentState<T>(key: string, defaultValue: T): [T, (value:
 }
 
 /**
- * Safely opens any external application link (Google Maps, Cashmaal Pay, WhatsApp, Phone, Email)
+ * Safely opens any external application link (Google Maps, WhatsApp, Phone, Email)
  * preventing crashes and handling missing application errors gracefully.
  */
 export function safeOpenExternalApp(url: string): boolean {
@@ -51,8 +51,6 @@ export function safeOpenExternalApp(url: string): boolean {
       toast.info("Opening WhatsApp...");
     } else if (url.includes('google.com/maps') || url.includes('maps.google')) {
       toast.info("Opening Google Maps...");
-    } else if (url.includes('cashmaal.com')) {
-      toast.info("Redirecting to Cashmaal Payment Gateway...");
     }
 
     // Creating a sandboxed dynamic anchor element is the safest way to trigger deep links / external redirects
