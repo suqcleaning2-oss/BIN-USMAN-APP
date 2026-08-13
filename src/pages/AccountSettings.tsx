@@ -36,7 +36,10 @@ import {
   AlertTriangle,
   LogOut,
   Mail,
-  Phone
+  Phone,
+  Sun,
+  Moon,
+  Laptop
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -50,7 +53,7 @@ const PASSWORD_REQUIREMENTS = [
 
 export default function AccountSettings() {
   const { user, profile } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themeMode, setThemeMode } = useTheme();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
 
@@ -374,21 +377,59 @@ export default function AccountSettings() {
             
             <div className="h-px bg-secondary dark:bg-zinc-800" />
 
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-body/70 dark:text-zinc-400">Dark Mode</span>
-              <button
-                onClick={toggleTheme}
-                type="button"
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                  isDark ? 'bg-[#D4AF37]' : 'bg-neutral-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
-                    isDark ? 'translate-x-6' : 'translate-x-1'
+            <div className="space-y-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-body/60 dark:text-zinc-400 block">
+                Appearance Mode
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setThemeMode('light')}
+                  className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all duration-300 ${
+                    themeMode === 'light'
+                      ? 'bg-[#D4AF37] text-neutral-950 border-[#D4AF37] shadow-lg shadow-[#D4AF37]/20 font-bold'
+                      : isDark
+                        ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                        : 'bg-background/40 border-secondary text-heading hover:bg-background'
                   }`}
-                />
-              </button>
+                >
+                  <Sun size={18} strokeWidth={themeMode === 'light' ? 2.5 : 1.5} />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Light</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setThemeMode('dark')}
+                  className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all duration-300 ${
+                    themeMode === 'dark'
+                      ? 'bg-[#D4AF37] text-neutral-950 border-[#D4AF37] shadow-lg shadow-[#D4AF37]/20 font-bold'
+                      : isDark
+                        ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                        : 'bg-background/40 border-secondary text-heading hover:bg-background'
+                  }`}
+                >
+                  <Moon size={18} strokeWidth={themeMode === 'dark' ? 2.5 : 1.5} />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Dark</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setThemeMode('system')}
+                  className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all duration-300 ${
+                    themeMode === 'system'
+                      ? 'bg-[#D4AF37] text-neutral-950 border-[#D4AF37] shadow-lg shadow-[#D4AF37]/20 font-bold'
+                      : isDark
+                        ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                        : 'bg-background/40 border-secondary text-heading hover:bg-background'
+                  }`}
+                >
+                  <Laptop size={18} strokeWidth={themeMode === 'system' ? 2.5 : 1.5} />
+                  <span className="text-[10px] font-black uppercase tracking-wider">System</span>
+                </button>
+              </div>
+              <p className="text-[9px] text-body/50 dark:text-zinc-500 uppercase tracking-wider text-center pt-1">
+                Active: <span className="font-bold text-[#D4AF37]">{themeMode === 'system' ? `System (${theme})` : themeMode}</span>
+              </p>
             </div>
           </div>
         </div>
