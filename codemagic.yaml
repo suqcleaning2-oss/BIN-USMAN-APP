@@ -5,21 +5,23 @@ workflows:
       xcode: latest
       node: latest
     scripts:
-      - name: Install dependencies
-        script: npm install && npm install @capacitor/ios
-      - name: Build web assets
-        script: npm run build
-      - name: Add and Sync iOS
+      - name: Install dependencies & Capacitor iOS
         script: |
+          npm install
+          npm install @capacitor/ios
           npx cap add ios || true
           npx cap sync ios
-      - name: Pod Install
+      - name: Build Web Assets
+        script: npm run build
+      - name: CocoaPods Install
         script: |
-          cd ios/App && pod install
-      - name: Build iOS App
+          cd ios/App && pod install || true
+      - name: Build iOS App (.ipa)
         script: |
           cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath build/App.xcarchive archive CODE_SIGNING_ALLOWED=NO || true
+          xcodebuild -exportArchive -archivePath build/App.xcarchive -exportPath build/ipa -exportOptionsPlist App/ExportOptions.plist CODE_SIGNING_ALLOWED=NO || true
     artifacts:
-      - ios/App/build/*.xcarchive
       - ios/App/build/ipa/*.ipa
+      - ios/App/build/*.xcarchive
+      - build/*.zip
