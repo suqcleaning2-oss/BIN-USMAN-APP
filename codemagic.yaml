@@ -9,9 +9,15 @@ workflows:
         script: npm install
       - name: Build web assets
         script: npm run build
-      - name: Add iOS platform
-        script: npx cap add ios || true
-      - name: Sync Capacitor
+      - name: Sync Capacitor iOS
         script: npx cap sync ios
+      - name: CocoaPods Install
+        script: cd ios/App && pod install
+      - name: Build iOS App (.ipa)
+        script: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath build/App.xcarchive archive CODE_SIGNING_ALLOWED=NO
+          xcodebuild -exportArchive -archivePath build/App.xcarchive -exportPath build/ipa -exportOptionsPlist App/ExportOptions.plist CODE_SIGNING_ALLOWED=NO || true
     artifacts:
-      - build/ios/ipa/*.ipa
+      - ios/App/build/ipa/*.ipa
+      - ios/App/build/*.xcarchive
