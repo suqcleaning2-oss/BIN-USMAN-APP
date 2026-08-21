@@ -4,26 +4,33 @@ workflows:
     environment:
       xcode: latest
       node: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.binusman.app
     scripts:
-      - name: Install Dependencies
-        script: |
-          npm install
-          npm install @capacitor/ios
+      - name: Install dependencies
+        script: npm install
       - name: Build Web Assets
-        script: |
-          npm run build || mkdir -p dist && touch dist/index.html
+        script: npm run build
       - name: Add and Sync iOS
         script: |
           npx cap add ios || true
           npx cap sync ios
-      - name: CocoaPods Install
+      - name: Install CocoaPods
         script: |
           cd ios/App && pod install
+      - name: Set up code signing
+        script: xcode-project use-profiles
       - name: Build iOS App (.ipa)
         script: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath build/App.xcarchive archive CODE_SIGNING_ALLOWED=NO || true
+          xcodebuild -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -config Release \
+            -archivePath ios/App/build/App.xcarchive archive
+          xcodebuild -exportArchive \
+            -archivePath ios/App/build/App.xcarchive \
+            -exportPath ios/App/build/ipa \
+            -exportOptionsPlist ios/App/App/ExportOptions.plist || true
     artifacts:
-      - ios/App/build/*.xcarchive
       - ios/App/build/ipa/*.ipa
-      - dist/**
+      - ios/App/build/*.xcarchive
