@@ -6,6 +6,9 @@ workflows:
       node: latest
       groups:
         - app_store_connect
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: binusman.application
     scripts:
       - name: Install dependencies
         script: npm install
@@ -21,25 +24,20 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-      - name: Build Unsigned IPA
+      - name: Build Signed Archive
         script: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcode-project use-profiles
+          xcodebuild -workspace ios/App/App.xcworkspace \
             -scheme App \
-            -configuration Release \
-            -archivePath build/App.xcarchive \
-            archive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
-          mkdir -p build/ipa/Payload
-          cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
-          cd build/ipa && zip -r BinUsman.ipa Payload
-      - name: Upload to App Store Connect
-        script: |
-          xcrun altool --upload-app \
-            -f "ios/App/build/ipa/BinUsman.ipa" \
-            -t ios \
-            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" || true
+            -config Release \
+            -archivePath ios/App/build/App.xcarchive archive
+          xcodebuild -exportArchive \
+            -archivePath ios/App/build/App.xcarchive \
+            -exportPath ios/App/build/ipa \
+            -exportOptionsPlist ios/App/App/ExportOptions.plist || true
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
     artifacts:
       - ios/App/build/ipa/*.ipa
