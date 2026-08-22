@@ -1,8 +1,6 @@
 workflows:
   ios-release:
     name: iOS App Store Direct Upload
-    integrations:
-      app_store_connect: "BIN USMAN KEYS"
     environment:
       xcode: latest
       node: latest
@@ -21,13 +19,6 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-      - name: Auto Create Certificates and Profiles
-        script: |
-          app-store-connect fetch-signing-files "binusman.application" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles
       - name: Build Signed Archive & Export IPA
         script: |
           cd ios/App
@@ -35,14 +26,11 @@ workflows:
             -scheme App \
             -configuration Release \
             -archivePath build/App.xcarchive \
-            archive
-          xcodebuild -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist App/ExportOptions.plist || true
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: false
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+          mkdir -p build/ipa/Payload
+          cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
+          cd build/ipa && zip -r BinUsman.ipa Payload
     artifacts:
       - ios/App/build/ipa/*.ipa
