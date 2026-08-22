@@ -36,6 +36,10 @@ workflows:
           cd build/ipa && zip -r BinUsman.ipa Payload
       - name: Direct Upload via Apple altool
         script: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
           xcrun altool --upload-app \
             -f "ios/App/build/ipa/BinUsman.ipa" \
             -t ios \
