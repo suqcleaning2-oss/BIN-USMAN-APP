@@ -6,7 +6,7 @@ workflows:
       node: latest
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.binusman.app
+        bundle_identifier: binusman.application
     scripts:
       - name: Install dependencies
         script: npm install
@@ -16,9 +16,11 @@ workflows:
         script: |
           npx cap add ios || true
           npx cap sync ios
-      - name: Install CocoaPods
+      - name: Update Xcode Bundle ID
         script: |
-          cd ios/App && pod install
+          cd ios/App
+          sed -i '' 's/com.binusman.app/binusman.application/g' App.xcodeproj/project.pbxproj || true
+          pod install
       - name: Set up code signing
         script: xcode-project use-profiles
       - name: Build iOS App (.ipa)
