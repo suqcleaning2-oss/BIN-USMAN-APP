@@ -36,9 +36,12 @@ workflows:
           cd build/ipa && zip -r BinUsman.ipa Payload
     publishing:
       app_store_connect:
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        private_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        api_key: |
+          -----BEGIN PRIVATE KEY-----
+          YOUR_PRIVATE_KEY_CONTENT_HERE
+          -----END PRIVATE KEY-----
+        key_id: YOUR_KEY_ID_HERE
+        issuer_id: YOUR_ISSUER_ID_HERE
         submit_to_testflight: true
     artifacts:
       - ios/App/build/ipa/*.ipa
