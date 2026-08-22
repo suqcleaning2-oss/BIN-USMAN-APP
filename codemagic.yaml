@@ -1,9 +1,11 @@
 workflows:
   ios-release:
-    name: iOS App Store Release
+    name: iOS App Store Direct Upload
     environment:
       xcode: latest
       node: latest
+      groups:
+        - app_store_connect
     scripts:
       - name: Install dependencies
         script: npm install
@@ -14,14 +16,12 @@ workflows:
           npx cap add ios || true
           npx cap sync ios
           if [ ! -f "ios/App/Podfile" ]; then
-            echo "Podfile missing, generating manually..."
-            cd ios/App && pod init
-            cd ../..
+            cd ios/App && pod init && cd ../..
           fi
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-      - name: Build Unsigned IPA Backup
+      - name: Build Unsigned IPA
         script: |
           cd ios/App
           xcodebuild -workspace App.xcworkspace \
@@ -34,5 +34,8 @@ workflows:
           mkdir -p build/ipa/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
           cd build/ipa && zip -r BinUsman.ipa Payload
+      - name: Publish Direct to App Store Connect
+        script: |
+          app-store-connect publish-ipa --path "ios/App/build/ipa/BinUsman.ipa"
     artifacts:
       - ios/App/build/ipa/*.ipa
