@@ -1,6 +1,6 @@
 workflows:
   ios-release:
-    name: iOS App Store Auto Build
+    name: iOS App Store Release
     environment:
       xcode: latest
       node: latest
@@ -9,28 +9,30 @@ workflows:
         script: npm install
       - name: Build Web Assets
         script: npm run build
-      - name: Sync Capacitor iOS
+      - name: Force Create Capacitor iOS & Podfile
         script: |
           npx cap add ios || true
           npx cap sync ios
+          if [ ! -f "ios/App/Podfile" ]; then
+            echo "Podfile missing, generating manually..."
+            cd ios/App && pod init
+            cd ../..
+          fi
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-      - name: Automatic Signing & IPA Export
+      - name: Build Unsigned IPA Backup
         script: |
-          app-store-connect fetch-signing-files "binusman.application" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles
-          xcodebuild -workspace ios/App/App.xcworkspace \
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
             -scheme App \
-            -config Release \
-            -archivePath ios/App/build/App.xcarchive archive
-          xcodebuild -exportArchive \
-            -archivePath ios/App/build/App.xcarchive \
-            -exportPath ios/App/build/ipa \
-            -exportOptionsPlist ios/App/App/ExportOptions.plist || true
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+          mkdir -p build/ipa/Payload
+          cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
+          cd build/ipa && zip -r BinUsman.ipa Payload
     artifacts:
       - ios/App/build/ipa/*.ipa
-      - ios/App/build/*.xcarchive
