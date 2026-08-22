@@ -6,9 +6,6 @@ workflows:
     environment:
       xcode: latest
       node: latest
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: binusman.application
     scripts:
       - name: Install dependencies
         script: npm install
@@ -24,17 +21,25 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-      - name: Build Signed Archive
+      - name: Auto Create Certificates and Profiles
         script: |
+          app-store-connect fetch-signing-files "binusman.application" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
           xcode-project use-profiles
-          xcodebuild -workspace ios/App/App.xcworkspace \
+      - name: Build Signed Archive & Export IPA
+        script: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
             -scheme App \
-            -config Release \
-            -archivePath ios/App/build/App.xcarchive archive
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive
           xcodebuild -exportArchive \
-            -archivePath ios/App/build/App.xcarchive \
-            -exportPath ios/App/build/ipa \
-            -exportOptionsPlist ios/App/App/ExportOptions.plist || true
+            -archivePath build/App.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist App/ExportOptions.plist || true
     publishing:
       app_store_connect:
         auth: integration
