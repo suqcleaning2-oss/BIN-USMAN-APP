@@ -1,11 +1,11 @@
 workflows:
   ios-release:
     name: iOS App Store Direct Upload
-    groups:
-      - app_store_connect
     environment:
       xcode: latest
       node: latest
+      groups:
+        - app_store_connect
     scripts:
       - name: Install dependencies
         script: npm install
@@ -36,7 +36,6 @@ workflows:
           cd build/ipa && zip -r BinUsman.ipa Payload
       - name: Upload to App Store Connect
         script: |
-          gem install xcnotary || true
           xcrun altool --upload-app \
             -f "ios/App/build/ipa/BinUsman.ipa" \
             -t ios \
