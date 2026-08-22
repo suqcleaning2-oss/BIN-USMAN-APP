@@ -2,10 +2,13 @@ workflows:
   ios-release:
     name: iOS App Store Direct Upload
     integrations:
-      app_store_connect: app_store_connect
+      app_store_connect: "BIN USMAN KEYS"
     environment:
       xcode: latest
       node: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: binusman.application
     scripts:
       - name: Install dependencies
         script: npm install
@@ -21,15 +24,9 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-      - name: Fetch and Create Signing Certificates / Profiles
-        script: |
-          app-store-connect fetch-signing-files "binusman.application" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles
       - name: Build Signed Archive
         script: |
+          xcode-project use-profiles
           xcodebuild -workspace ios/App/App.xcworkspace \
             -scheme App \
             -config Release \
