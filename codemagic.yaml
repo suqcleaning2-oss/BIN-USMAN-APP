@@ -34,12 +34,9 @@ workflows:
           mkdir -p build/ipa/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
           cd build/ipa && zip -r BinUsman.ipa Payload
-      - name: Upload to App Store Connect
-        script: |
-          xcrun altool --upload-app \
-            -f "ios/App/build/ipa/BinUsman.ipa" \
-            -t ios \
-            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" || true
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
     artifacts:
       - ios/App/build/ipa/*.ipa
