@@ -16,11 +16,12 @@ workflows:
         script: |
           npx cap add ios || true
           npx cap sync ios
-      - name: Update Xcode Bundle ID
+      - name: Install CocoaPods
         script: |
-          cd ios/App
-          sed -i '' 's/com.binusman.app/binusman.application/g' App.xcodeproj/project.pbxproj || true
-          pod install
+          cd ios/App && pod install
+      - name: Fetch / Create iOS Certificates and Profiles
+        script: |
+          app-store-connect fetch-signing-files "binusman.application" --type IOS_APP_STORE --create
       - name: Set up code signing
         script: xcode-project use-profiles
       - name: Build iOS App (.ipa)
