@@ -1,11 +1,11 @@
 workflows:
   ios-release:
     name: iOS App Store Direct Upload
+    integrations:
+      app_store_connect: BIN USMAN KEYS
     environment:
       xcode: latest
       node: latest
-      groups:
-        - app_store_connect
     scripts:
       - name: Install dependencies
         script: npm install
@@ -36,12 +36,7 @@ workflows:
           cd build/ipa && zip -r BinUsman.ipa Payload
     publishing:
       app_store_connect:
-        api_key: |
-          -----BEGIN PRIVATE KEY-----
-          YOUR_PRIVATE_KEY_CONTENT_HERE
-          -----END PRIVATE KEY-----
-        key_id: YOUR_KEY_ID_HERE
-        issuer_id: YOUR_ISSUER_ID_HERE
+        auth: integration
         submit_to_testflight: true
     artifacts:
       - ios/App/build/ipa/*.ipa
