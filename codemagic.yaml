@@ -7,13 +7,39 @@ workflows:
       groups:
         - app_store_connect
     scripts:
-      - name: Fast Re-use Existing Build
+      - name: Install dependencies
+        script: npm install
+      - name: Build Web Assets
+        script: npm run build
+      - name: Force Create Capacitor iOS & Podfile
         script: |
-          mkdir -p ios/App/build/ipa
-          curl -sL "$CODEMAGIC_ARTIFACT_URL" -o ios/App/build/ipa/BinUsman.ipa || true
-      - name: Upload Binary to App Store Connect
+          npx cap add ios || true
+          npx cap sync ios
+          if [ ! -f "ios/App/Podfile" ]; then
+            cd ios/App && pod init && cd ../..
+          fi
+      - name: Install CocoaPods
         script: |
-          app-store-connect publish \
-            --path "ios/App/build/ipa/BinUsman.ipa"
+          cd ios/App && pod install
+      - name: Build Unsigned IPA
+        script: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+          mkdir -p build/ipa/Payload
+          cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
+          cd build/ipa && zip -r BinUsman.ipa Payload
+      - name: Direct Upload via Apple altool
+        script: |
+          xcrun altool --upload-app \
+            -f "ios/App/build/ipa/BinUsman.ipa" \
+            -t ios \
+            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
     artifacts:
       - ios/App/build/ipa/*.ipa
