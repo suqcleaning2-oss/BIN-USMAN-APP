@@ -34,17 +34,15 @@ workflows:
           mkdir -p build/ipa/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
           cd build/ipa && zip -r BinUsman.ipa Payload
-      - name: Upload to App Store
+      - name: Decode Key & Publish
         script: |
           mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
 
-          # Clean PEM key formatting
-          python3 -c "import os; key=os.environ.get('APP_STORE_CONNECT_PRIVATE_KEY', '').replace('\\n', '\n'); open('/Users/builder/.appstoreconnect/private_keys/AuthKey_' + os.environ.get('APP_STORE_CONNECT_KEY_IDENTIFIER', '') + '.p8', 'w').write(key)"
-
-          xcrun altool --upload-app \
-            -f "ios/App/build/ipa/BinUsman.ipa" \
-            -t ios \
-            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+          app-store-connect publish \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --private-key "$(cat ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8)" \
+            --path "ios/App/build/ipa/BinUsman.ipa"
     artifacts:
       - ios/App/build/ipa/*.ipa
