@@ -34,15 +34,19 @@ workflows:
           mkdir -p build/ipa/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
           cd build/ipa && zip -r BinUsman.ipa Payload
-      - name: Decode Key and Upload
+      - name: Decode Key File and Upload via altool
         script: |
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
 
-          xcrun app-store-connect publish \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "$(cat ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8)" \
-            --artifact-paths "ios/App/build/ipa/BinUsman.ipa"
+          xcrun altool --upload-app \
+            -f "ios/App/build/ipa/BinUsman.ipa" \
+            -t ios \
+            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
     artifacts:
       - ios/App/build/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - suqcleaning2@gmail.com
