@@ -34,14 +34,11 @@ workflows:
           mkdir -p build/ipa/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
           cd build/ipa && zip -r BinUsman.ipa Payload
-      - name: Upload to App Store
-        script: |
-          PROCESSED_KEY=$(echo "$APP_STORE_CONNECT_PRIVATE_KEY" | sed 's/\\n/\n/g')
-
-          app-store-connect publish \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "$PROCESSED_KEY" \
-            --artifact-paths "ios/App/build/ipa/BinUsman.ipa"
     artifacts:
       - ios/App/build/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
