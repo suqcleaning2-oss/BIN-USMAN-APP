@@ -36,18 +36,11 @@ workflows:
           cd build/ipa && zip -r BinUsman.ipa Payload
       - name: Clean Key File & Upload
         script: |
-          mkdir -p ~/.appstoreconnect/private_keys
+          KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$KEY_DIR"
+          KEY_PATH="$KEY_DIR/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
 
-          python3 -c "
-import os
-key = os.environ.get('APP_STORE_CONNECT_PRIVATE_KEY', '').strip()
-key_id = os.environ.get('APP_STORE_CONNECT_KEY_IDENTIFIER', '').strip()
-if '\\n' in key and not '\n' in key:
-    key = key.replace('\\n', '\n')
-file_path = f'/Users/builder/.appstoreconnect/private_keys/AuthKey_{key_id}.p8'
-with open(file_path, 'w') as f:
-    f.write(key + '\n')
-"
+          printf "%s\n" "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
 
           xcrun altool --upload-app \
             -f "ios/App/build/ipa/BinUsman.ipa" \
