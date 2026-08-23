@@ -34,16 +34,26 @@ workflows:
           mkdir -p build/ipa/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
           cd build/ipa && zip -r BinUsman.ipa Payload
-      - name: Create Key File and Publish
+      - name: Clean Key File & Upload
         script: |
-          mkdir -p ~/.private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+          mkdir -p ~/.appstoreconnect/private_keys
 
-          xcrun app-store-connect publish \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "$(cat ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8)" \
-            --artifact-paths "ios/App/build/ipa/BinUsman.ipa"
+          python3 -c "
+import os
+key = os.environ.get('APP_STORE_CONNECT_PRIVATE_KEY', '').strip()
+key_id = os.environ.get('APP_STORE_CONNECT_KEY_IDENTIFIER', '').strip()
+if '\\n' in key and not '\n' in key:
+    key = key.replace('\\n', '\n')
+file_path = f'/Users/builder/.appstoreconnect/private_keys/AuthKey_{key_id}.p8'
+with open(file_path, 'w') as f:
+    f.write(key + '\n')
+"
+
+          xcrun altool --upload-app \
+            -f "ios/App/build/ipa/BinUsman.ipa" \
+            -t ios \
+            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
     artifacts:
       - ios/App/build/ipa/*.ipa
     publishing:
