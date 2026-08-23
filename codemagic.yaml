@@ -37,7 +37,10 @@ workflows:
       - name: Upload to App Store
         script: |
           mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+
+          # Clean PEM key formatting
+          python3 -c "import os; key=os.environ.get('APP_STORE_CONNECT_PRIVATE_KEY', '').replace('\\n', '\n'); open('/Users/builder/.appstoreconnect/private_keys/AuthKey_' + os.environ.get('APP_STORE_CONNECT_KEY_IDENTIFIER', '') + '.p8', 'w').write(key)"
+
           xcrun altool --upload-app \
             -f "ios/App/build/ipa/BinUsman.ipa" \
             -t ios \
