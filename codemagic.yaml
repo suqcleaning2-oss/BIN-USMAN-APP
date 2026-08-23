@@ -34,22 +34,14 @@ workflows:
           mkdir -p build/ipa/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
           cd build/ipa && zip -r BinUsman.ipa Payload
-      - name: Clean Key File & Upload
+      - name: Upload to App Store
         script: |
-          KEY_DIR="$HOME/.appstoreconnect/private_keys"
-          mkdir -p "$KEY_DIR"
-          KEY_PATH="$KEY_DIR/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+          PROCESSED_KEY=$(echo "$APP_STORE_CONNECT_PRIVATE_KEY" | sed 's/\\n/\n/g')
 
-          printf "%s\n" "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
-
-          xcrun altool --upload-app \
-            -f "ios/App/build/ipa/BinUsman.ipa" \
-            -t ios \
-            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+          app-store-connect publish \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --private-key "$PROCESSED_KEY" \
+            --artifact-paths "ios/App/build/ipa/BinUsman.ipa"
     artifacts:
       - ios/App/build/ipa/*.ipa
-    publishing:
-      email:
-        recipients:
-          - suqcleaning2@gmail.com
