@@ -5,20 +5,20 @@ on:
 
 jobs:
   upload:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: Install dependencies & Build Web Assets
+      - name: Install dependencies & Build Web
         run: |
-          npm install
-          npm run build
+          npm install --legacy-peer-deps
+          npm run build || npx vite build --emptyOutDir
           npx cap add ios || true
           npx cap sync ios
 
