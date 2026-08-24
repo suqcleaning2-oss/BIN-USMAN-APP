@@ -1,34 +1,32 @@
 workflows:
-  ios-app-store-upload:
-    name: iOS App Store Direct Upload
-    max_build_duration: 60
-    instance_type: mac_mini_m2
+  ios-workflow:
+    name: iOS Release Build
+    instance_type: mac_mini_m1
     integrations:
-      app_store_connect: BinUsmanAuth
+      app_store_connect: "BIN USMAN KEYS"
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: binusman.application
-      node: 22
-      xcode: latest
+      vars:
+        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
     scripts:
-      - name: Install dependencies & Build Web
+      - name: Set up code signing settings on Xcode project
         script: |
-          npm install --legacy-peer-deps
-          npm run build || npx vite build --emptyOutDir
-          npx cap add ios || true
-          npx cap sync ios
-      - name: Install CocoaPods
+          xcode-project use-profiles
+      - name: Get Flutter packages
         script: |
-          cd ios/App
-          pod install
-      - name: Build and Package Signed IPA
+          flutter packages pub get
+      - name: Install CocoaPods dependencies
         script: |
-          xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
-            --scheme "App"
+          cd ios && pod install
+      - name: Build IPA for App Store
+        script: |
+          build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
         auth: integration
