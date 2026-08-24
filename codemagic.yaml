@@ -12,9 +12,9 @@ workflows:
         XCODE_WORKSPACE: "ios/Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
     scripts:
-      - name: Fetch signing files
+      - name: Fetch signing files from Apple
         script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "binusman.application" --type IOS_APP_STORE --create
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
@@ -29,7 +29,6 @@ workflows:
           build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
         auth: integration
