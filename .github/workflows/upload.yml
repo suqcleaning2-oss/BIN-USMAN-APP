@@ -1,0 +1,46 @@
+name: Upload IPA to App Store
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies & Build Web Assets
+        run: |
+          npm install
+          npm run build
+          npx cap add ios || true
+          npx cap sync ios
+
+      - name: Build Archive & IPA
+        run: |
+          cd ios/App
+          pod install
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+          mkdir -p build/ipa/Payload
+          cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
+          cd build/ipa && zip -r BinUsman.ipa Payload
+
+      - name: Upload to App Store Connect
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: 'ios/App/build/ipa/BinUsman.ipa'
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
