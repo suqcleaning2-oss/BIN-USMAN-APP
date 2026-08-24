@@ -42,11 +42,10 @@ jobs:
 
       - name: Upload to App Store Connect
         env:
-          PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
+          KEY_ID: 9F33Z6XYHY
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           mkdir -p ~/.private_keys
-          python3 -c "import base64, os; data = base64.b64decode(os.environ['PRIVATE_KEY_BASE64']); open(os.path.expanduser(f'~/.private_keys/AuthKey_{os.environ[\"KEY_ID\"]}.p8'), 'wb').write(data.strip())"
-          chmod 600 ~/.private_keys/AuthKey_${KEY_ID}.p8
+          cp AuthKey_9F33Z6XYHY.p8 ~/.private_keys/
+          chmod 600 ~/.private_keys/AuthKey_9F33Z6XYHY.p8
           xcrun altool --upload-app -f ios/App/build/ipa/BinUsman.ipa -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
