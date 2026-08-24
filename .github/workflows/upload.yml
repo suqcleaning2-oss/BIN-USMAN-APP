@@ -42,13 +42,11 @@ jobs:
 
       - name: Upload to App Store Connect via xcrun
         env:
-          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           mkdir -p ~/.private_keys
-          cat << KEYEOF > ~/.private_keys/AuthKey_${KEY_ID}.p8
-          $PRIVATE_KEY
-          KEYEOF
+          echo "$PRIVATE_KEY_BASE64" | base64 --decode > ~/.private_keys/AuthKey_${KEY_ID}.p8
           chmod 600 ~/.private_keys/AuthKey_${KEY_ID}.p8
           xcrun altool --upload-app -f ios/App/build/ipa/BinUsman.ipa -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
