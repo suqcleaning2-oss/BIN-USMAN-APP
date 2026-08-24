@@ -3,7 +3,7 @@ workflows:
     name: iOS Release Build
     instance_type: mac_mini_m1
     integrations:
-      app_store_connect: "BIN USMAN KEYS"
+      apple_developer_portal: "BIN USMAN KEYS"
     environment:
       ios_signing:
         distribution_type: app_store
@@ -12,9 +12,6 @@ workflows:
         XCODE_WORKSPACE: "ios/Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
     scripts:
-      - name: Fetch signing files from Apple
-        script: |
-          app-store-connect fetch-signing-files "binusman.application" --type IOS_APP_STORE --create
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
@@ -29,7 +26,3 @@ workflows:
           build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
