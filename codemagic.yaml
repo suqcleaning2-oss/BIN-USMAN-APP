@@ -1,42 +1,35 @@
 workflows:
-  ios-release:
+  ios-app-store-upload:
     name: iOS App Store Direct Upload
+    max_build_duration: 60
+    instance_type: mac_mini_m2
     integrations:
-      app_store_connect: app_store_connect
+      app_store_connect: BinUsmanAuth
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: binusman.application
+      node: 22
       xcode: latest
-      node: latest
     scripts:
-      - name: Install dependencies
-        script: npm install
-      - name: Build Web Assets
-        script: npm run build
-      - name: Force Create Capacitor iOS & Podfile
+      - name: Install dependencies & Build Web
         script: |
+          npm install --legacy-peer-deps
+          npm run build || npx vite build --emptyOutDir
           npx cap add ios || true
           npx cap sync ios
-          if [ ! -f "ios/App/Podfile" ]; then
-            cd ios/App && pod init && cd ../..
-          fi
       - name: Install CocoaPods
         script: |
-          cd ios/App && pod install
-      - name: Build Signed Archive
-        script: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath build/App.xcarchive \
-            archive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
-          mkdir -p build/ipa/Payload
-          cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
-          cd build/ipa && zip -r BinUsman.ipa Payload
+          pod install
+      - name: Build and Package Signed IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "App"
     artifacts:
-      - ios/App/build/ipa/*.ipa
+      - build/ios/ipa/*.ipa
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: false
+        submit_to_testflight: true
