@@ -47,5 +47,8 @@ jobs:
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           mkdir -p ~/.private_keys
-          echo "$PRIVATE_KEY" > ~/.private_keys/AuthKey_${KEY_ID}.p8
+          cat << KEYEOF > ~/.private_keys/AuthKey_${KEY_ID}.p8
+          $PRIVATE_KEY
+          KEYEOF
+          chmod 600 ~/.private_keys/AuthKey_${KEY_ID}.p8
           xcrun altool --upload-app -f ios/App/build/ipa/BinUsman.ipa -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
