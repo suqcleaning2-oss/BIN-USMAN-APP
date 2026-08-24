@@ -1,11 +1,11 @@
 workflows:
   ios-release:
     name: iOS App Store Direct Upload
+    integrations:
+      app_store_connect: app_store_connect
     environment:
       xcode: latest
       node: latest
-      groups:
-        - app_store_connect
     scripts:
       - name: Install dependencies
         script: npm install
