@@ -22,9 +22,12 @@ jobs:
           npx cap add ios || true
           npx cap sync ios
 
-      - name: Build Archive & IPA
+      - name: Ensure Podfile & Build Archive
         run: |
           cd ios/App
+          if [ ! -f "Podfile" ]; then
+            pod init
+          fi
           pod install
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
