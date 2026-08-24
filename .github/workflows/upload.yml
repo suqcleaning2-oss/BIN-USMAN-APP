@@ -40,13 +40,13 @@ jobs:
           cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
           cd build/ipa && zip -r BinUsman.ipa Payload
 
-      - name: Upload to App Store Connect via xcrun
+      - name: Upload to App Store Connect
         env:
           PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           mkdir -p ~/.private_keys
-          echo "$PRIVATE_KEY_BASE64" | base64 --decode > ~/.private_keys/AuthKey_${KEY_ID}.p8
+          python3 -c "import base64, os; data = base64.b64decode(os.environ['PRIVATE_KEY_BASE64']); open(os.path.expanduser(f'~/.private_keys/AuthKey_{os.environ[\"KEY_ID\"]}.p8'), 'wb').write(data.strip())"
           chmod 600 ~/.private_keys/AuthKey_${KEY_ID}.p8
           xcrun altool --upload-app -f ios/App/build/ipa/BinUsman.ipa -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
