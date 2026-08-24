@@ -41,7 +41,7 @@ jobs:
           cd build/ipa && zip -r BinUsman.ipa Payload
 
       - name: Upload to App Store Connect
-        uses: apple-actions/upload-testflight-build@v1
+        uses: apple-actions/upload-testflight-build@v1.0.1
         with:
           app-path: 'ios/App/build/ipa/BinUsman.ipa'
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
