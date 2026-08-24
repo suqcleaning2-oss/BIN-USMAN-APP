@@ -1,20 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-mkdir -p ~/.appstoreconnect/private_keys
+KEY_DIR="$HOME/.appstoreconnect/private_keys"
+mkdir -p "$KEY_DIR"
+KEY_FILE="$KEY_DIR/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
 
-# Python se private key ki formatting aur line breaks clean karna
-python3 -c "
-import os
-raw_key = os.environ.get('APP_STORE_CONNECT_PRIVATE_KEY', '')
-key_id = os.environ.get('APP_STORE_CONNECT_KEY_IDENTIFIER', '')
-formatted_key = raw_key.replace('\\n', '\n').strip()
-file_path = f'/Users/builder/.appstoreconnect/private_keys/AuthKey_{key_id}.p8'
-with open(file_path, 'w') as f:
-    f.write(formatted_key + '\n')
-"
+# Raw key se Header/Footer/Newlines saaf karke pure Base64 decode karna
+echo "$APP_STORE_CONNECT_PRIVATE_KEY" | \
+  sed 's/-----BEGIN PRIVATE KEY-----//g' | \
+  sed 's/-----END PRIVATE KEY-----//g' | \
+  tr -d '\n\r ' | \
+  base64 --decode > "$KEY_FILE"
 
-# Upload via altool
 xcrun altool --upload-app \
   -f "ios/App/build/ipa/BinUsman.ipa" \
   -t ios \
