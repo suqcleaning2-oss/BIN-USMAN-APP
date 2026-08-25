@@ -3,6 +3,8 @@ workflows:
     name: iOS Release Build
     instance_type: mac_mini_m1
     max_build_duration: 60
+    integrations:
+      app_store_connect: "BIN USMAN KEYS"
     environment:
       ios_signing:
         distribution_type: app_store
@@ -25,9 +27,6 @@ workflows:
             SCHEME=$(xcodebuild -project "$PROJECT" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
             xcode-project build-ipa --project "$PROJECT" --scheme "$SCHEME"
           fi
-      - name: Prepare Artifacts for App Store Upload
-        script: |
-          echo "IPA Build complete and signed for App Store."
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
