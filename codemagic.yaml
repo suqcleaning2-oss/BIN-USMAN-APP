@@ -7,27 +7,29 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: binusman.application
-      node: 18.16.0
       xcode: latest
+      cocoapods: default
     scripts:
-      - name: Install dependencies
+      - name: Initialize Codemagic CLI Tools
         script: |
-          npm install || echo "No npm packages"
-      - name: Dynamic Pod check and install
-        script: |
-          if [ -f "ios/Podfile" ]; then
-            cd ios && pod install
-          elif [ -f "Podfile" ]; then
-            pod install
-          else
-            echo "No Podfile required, skipping CocoaPods..."
-          fi
-      - name: Set up code signing settings on Xcode project
+          pip3 install codemagic-cli-tools
+      - name: Set up code signing
         script: |
           xcode-project use-profiles
-      - name: Build IPA for App Store
+      - name: Build IPA
         script: |
-          build-ipa
+          WORKSPACE=$(find . -maxdepth 3 -name "*.xcworkspace" | head -n 1)
+          PROJECT=$(find . -maxdepth 3 -name "*.xcodeproj" | head -n 1)
+
+          if [ -n "$WORKSPACE" ]; then
+            SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
+            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "$SCHEME"
+          elif [ -n "$PROJECT" ]; then
+            SCHEME=$(xcodebuild -project "$PROJECT" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
+            xcode-project build-ipa --project "$PROJECT" --scheme "$SCHEME"
+          else
+            echo "No Xcode project found!" && exit 1
+          fi
       - name: Upload to App Store Connect
         script: |
           app-store-connect publish
