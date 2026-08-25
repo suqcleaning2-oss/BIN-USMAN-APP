@@ -13,8 +13,9 @@ workflows:
       - name: Initialize Codemagic CLI Tools
         script: |
           pip3 install codemagic-cli-tools
-      - name: Set up code signing
+      - name: Fetch Signing Files & Set Profiles
         script: |
+          app-store-connect fetch-signing-files "binusman.application" --type IOS_APP_STORE --create
           xcode-project use-profiles
       - name: Build IPA
         script: |
@@ -30,5 +31,4 @@ workflows:
           fi
       - name: Upload to App Store Connect
         script: |
-          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
-          app-store-connect publish-to-testflight --package "$IPA_PATH"
+          app-store-connect publish
