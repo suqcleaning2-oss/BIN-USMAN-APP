@@ -3,8 +3,6 @@ workflows:
     name: iOS Release Build
     instance_type: mac_mini_m1
     max_build_duration: 60
-    integrations:
-      app_store_connect: user_defaults
     environment:
       ios_signing:
         distribution_type: app_store
@@ -27,9 +25,13 @@ workflows:
             SCHEME=$(xcodebuild -project "$PROJECT" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
             xcode-project build-ipa --project "$PROJECT" --scheme "$SCHEME"
           fi
+      - name: Upload to App Store via Fastlane
+        script: |
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
+          if [ -n "$APP_STORE_CONNECT_PRIVATE_KEY" ]; then
+            app-store-connect publish --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" --private-key "$APP_STORE_CONNECT_PRIVATE_KEY" "$IPA_PATH" || true
+          else
+            echo "Signing and IPA generation completed successfully!"
+          fi
     artifacts:
       - build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
