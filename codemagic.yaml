@@ -1,25 +1,27 @@
 workflows:
   ios-workflow:
-    name: iOS Release Build
+    name: iOS Release Build (React Native)
     instance_type: mac_mini_m1
+    max_build_duration: 60
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: binusman.application
       vars:
-        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
-        XCODE_SCHEME: "Runner"
+        XCODE_WORKSPACE: "ios/BINUSMANAPP.xcworkspace"
+        XCODE_SCHEME: "BINUSMANAPP"
+      node: 18.16.0
+      xcode: latest
     scripts:
+      - name: Install Node modules
+        script: |
+          npm install
+      - name: Install CocoaPods
+        script: |
+          cd ios && pod install
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get || (cd * && flutter packages pub get)
-      - name: Install CocoaPods dependencies
-        script: |
-          cd ios 2>/dev/null || cd */ios
-          pod install
       - name: Build IPA for App Store
         script: |
           build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
