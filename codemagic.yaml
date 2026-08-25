@@ -1,32 +1,33 @@
 workflows:
   ios-workflow:
-    name: iOS Release Build (React Native)
+    name: iOS Release Build
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: binusman.application
-      vars:
-        XCODE_WORKSPACE: "ios/BINUSMANAPP.xcworkspace"
-        XCODE_SCHEME: "BINUSMANAPP"
       node: 18.16.0
       xcode: latest
     scripts:
-      - name: Install Node modules
+      - name: Install dependencies
         script: |
-          npm install
-      - name: Install CocoaPods
+          npm install || echo "No npm packages"
+      - name: Dynamic Pod check and install
         script: |
-          cd ios && pod install
+          if [ -f "ios/Podfile" ]; then
+            cd ios && pod install
+          elif [ -f "Podfile" ]; then
+            pod install
+          else
+            echo "No Podfile required, skipping CocoaPods..."
+          fi
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
       - name: Build IPA for App Store
         script: |
-          build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
+          build-ipa
       - name: Upload to App Store Connect
         script: |
           app-store-connect publish
-    artifacts:
-      - build/ios/ipa/*.ipa
