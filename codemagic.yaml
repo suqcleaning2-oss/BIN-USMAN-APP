@@ -27,9 +27,8 @@ workflows:
           elif [ -n "$PROJECT" ]; then
             SCHEME=$(xcodebuild -project "$PROJECT" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
             xcode-project build-ipa --project "$PROJECT" --scheme "$SCHEME"
-          else
-            echo "No Xcode project found!" && exit 1
           fi
       - name: Upload to App Store Connect
         script: |
-          app-store-connect publish
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
+          app-store-connect publish-to-testflight --package "$IPA_PATH"
