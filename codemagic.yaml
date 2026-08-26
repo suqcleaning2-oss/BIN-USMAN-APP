@@ -3,8 +3,8 @@ workflows:
     name: Publish IPA to App Store Connect
     instance_type: mac_mini_m1
     environment:
-      app_store_connect:
-        - BIN_USMAN_API_KEY
+      groups:
+        - binusman.application
     scripts:
       - name: Publish to TestFlight
         script: |
