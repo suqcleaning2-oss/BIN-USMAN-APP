@@ -3,10 +3,23 @@ workflows:
     name: Publish IPA to App Store Connect
     instance_type: mac_mini_m1
     environment:
-      groups:
-        - binusman.application
+      vars:
+        APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
     scripts:
       - name: Publish to TestFlight
         script: |
           IPA_PATH=$(find . -name "*.ipa" -o -name "App.ipa" | head -n 1)
-          app-store-connect publish --path "$IPA_PATH"
+          KEY_PATH=$(find . -name "*.p8" | head -n 1)
+
+          if [ -z "$IPA_PATH" ] || [ -z "$KEY_PATH" ]; then
+            echo "Error: IPA ya P8 key file missing hai!"
+            exit 1
+          fi
+
+          echo "Publishing $IPA_PATH using $KEY_PATH..."
+          app-store-connect publish \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --private-key "$(cat "$KEY_PATH")" \
+            --path "$IPA_PATH"
