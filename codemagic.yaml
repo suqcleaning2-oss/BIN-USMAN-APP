@@ -1,37 +1,25 @@
 workflows:
-  ios-workflow:
-    name: iOS Release Build
+  ios-app-store-publishing:
+    name: Publish IPA to App Store Connect
     instance_type: mac_mini_m1
-    max_build_duration: 60
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: binusman.application
-      xcode: latest
-      cocoapods: default
+      vars:
+        APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
     scripts:
-      - name: Set up code signing
+      - name: Publish to TestFlight
         script: |
-          xcode-project use-profiles
-      - name: Build IPA
-        script: |
-          WORKSPACE=$(find . -maxdepth 3 -name "*.xcworkspace" | head -n 1)
-          PROJECT=$(find . -maxdepth 3 -name "*.xcodeproj" | head -n 1)
+          IPA_PATH=$(find . -name "*.ipa" -o -name "App.ipa" | head -n 1)
+          KEY_PATH=$(find . -name "*.p8" | head -n 1)
 
-          if [ -n "$WORKSPACE" ]; then
-            SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
-            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "$SCHEME"
-          elif [ -n "$PROJECT" ]; then
-            SCHEME=$(xcodebuild -project "$PROJECT" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
-            xcode-project build-ipa --project "$PROJECT" --scheme "$SCHEME"
+          if [ -z "$IPA_PATH" ] || [ -z "$KEY_PATH" ]; then
+            echo "Error: IPA ya P8 key file missing hai!"
+            exit 1
           fi
-      - name: Upload to App Store via Fastlane
-        script: |
-          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
-          if [ -n "$APP_STORE_CONNECT_PRIVATE_KEY" ]; then
-            app-store-connect publish --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" --private-key "$APP_STORE_CONNECT_PRIVATE_KEY" "$IPA_PATH" || true
-          else
-            echo "Signing and IPA generation completed successfully!"
-          fi
-    artifacts:
-      - build/ios/ipa/*.ipa
+
+          echo "Publishing $IPA_PATH using $KEY_PATH..."
+          app-store-connect publish \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --private-key "$(cat $KEY_PATH)" \
+            --path "$IPA_PATH"
