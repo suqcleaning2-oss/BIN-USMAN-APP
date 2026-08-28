@@ -1,6 +1,6 @@
 workflows:
   upload-ipa-only:
-    name: Upload Existing IPA to TestFlight
+    name: Upload Any IPA to TestFlight
     instance_type: mac_mini_m1
     max_build_duration: 20
     environment:
@@ -10,11 +10,11 @@ workflows:
     scripts:
       - name: Upload IPA to TestFlight
         script: |
-          IPA_PATH=$(find . -maxdepth 2 -name "App.ipa" | head -n 1)
-          KEY_PATH=$(find . -maxdepth 2 -name "*.p8" | head -n 1)
+          IPA_PATH=$(find . -maxdepth 2 -type f -name "*.ipa" | head -n 1)
+          KEY_PATH=$(find . -maxdepth 2 -type f -name "*.p8" | head -n 1)
 
           if [ -z "$IPA_PATH" ]; then
-            echo "Error: App.ipa nahi mili repo me!"
+            echo "Error: Koi bhi .ipa file nahi mili repo me!"
             exit 1
           fi
 
