@@ -1,25 +1,62 @@
 workflows:
-  ios-app-store-publishing:
-    name: Publish IPA to App Store Connect
+  ios-workflow:
+    name: iOS Release Build
     instance_type: mac_mini_m1
+    max_build_duration: 60
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: binusman.application
       vars:
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
+      xcode: latest
+      cocoapods: default
     scripts:
-      - name: Publish to TestFlight
+      - name: Force Set Unique Build Number
         script: |
-          IPA_PATH=$(find . -name "*.ipa" -o -name "App (2).ipa" | head -n 1)
-          KEY_PATH=$(find . -name "*.p8" | head -n 1)
+          # Codemagic ka BUILD_NUMBER le kar +500 kar denge. Har build unique hogi
+          UNIQUE_BUILD=$((500 + BUILD_NUMBER))
+          echo "Setting build number to: $UNIQUE_BUILD"
 
-          if [ -z "$IPA_PATH" ] || [ -z "$KEY_PATH" ]; then
-            echo "Error: IPA ya P8 key file missing hai!"
+          # Info.plist me build number set karo
+          PLIST_FILE=$(find ios -name "Info.plist" | head -n 1)
+          if [ -f "$PLIST_FILE" ]; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $UNIQUE_BUILD" "$PLIST_FILE"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "$PLIST_FILE"
+            echo "Updated $PLIST_FILE to build $UNIQUE_BUILD"
+          fi
+
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+
+      - name: Build IPA
+        script: |
+          WORKSPACE=$(find . -maxdepth 3 -name "*.xcworkspace" | head -n 1)
+          PROJECT=$(find . -maxdepth 3 -name "*.xcodeproj" | head -n 1)
+
+          if [ -n "$WORKSPACE" ]; then
+            SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
+            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "$SCHEME"
+          elif [ -n "$PROJECT" ]; then
+            SCHEME=$(xcodebuild -project "$PROJECT" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
+            xcode-project build-ipa --project "$PROJECT" --scheme "$SCHEME"
+          fi
+
+      - name: Upload to App Store via App Store Connect
+        script: |
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "Error: IPA not found!"
             exit 1
           fi
 
-          echo "Publishing $IPA_PATH using $KEY_PATH..."
+          echo "Publishing $IPA_PATH to TestFlight..."
           app-store-connect publish \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
             --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "$(cat $KEY_PATH)" \
+            --private-key "$APP_STORE_CONNECT_PRIVATE_KEY" \
             --path "$IPA_PATH"
+    artifacts:
+      - build/ios/ipa/*.ipa
