@@ -12,7 +12,7 @@ workflows:
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
-      node: 18
+      node: 20
     scripts:
       - name: Copy GoogleService-Info.plist
         script: |
