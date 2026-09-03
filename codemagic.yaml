@@ -1,6 +1,6 @@
 workflows:
   ios-workflow:
-    name: iOS Release Build 801
+    name: iOS Release Build 801 Fastlane Fixed
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
@@ -20,17 +20,19 @@ workflows:
 
       - name: Build IPA with Fastlane
         script: |
-          fastlane run build_app \
-          project:"ios/App/App.xcodeproj" \
-          scheme:"App" \
-          export_method:"app-store" \
-          output_directory:"build/ios/ipa" \
-          output_name:"App.ipa"
+          cd ios
+          fastlane gym \
+          --project App/App.xcodeproj \
+          --scheme App \
+          --export_method app-store \
+          --output_directory ../build/ios/ipa \
+          --output_name App.ipa \
+          --clean
 
       - name: Upload to TestFlight
         script: |
-          fastlane run upload_to_testflight \
-          ipa:"build/ios/ipa/App.ipa" \
-          skip_waiting_for_build_processing:true
+          fastlane pilot upload \
+          --ipa build/ios/ipa/App.ipa \
+          --skip_waiting_for_build_processing
     artifacts:
       - build/ios/ipa/*.ipa
