@@ -12,7 +12,6 @@ workflows:
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
-      cocoapods: default
     scripts:
       - name: Find and Copy GoogleService-Info.plist
         script: |
@@ -35,10 +34,6 @@ workflows:
           PLIST_FILE="ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "$PLIST_FILE"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "$PLIST_FILE"
-
-      - name: Install Pods
-        script: |
-          cd ios/App && pod install
 
       - name: Build IPA
         script: |
