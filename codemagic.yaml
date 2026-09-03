@@ -12,7 +12,7 @@ workflows:
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
-      cocoapods: default
+      node: 18
     scripts:
       - name: Copy GoogleService-Info.plist
         script: |
@@ -36,12 +36,15 @@ workflows:
           cd ios/App
           agvtool new-version -all 801
 
-      - name: Install Pods
+      - name: Install JS Dependencies
+        script: |
+          set -euo pipefail
+          npm install
+
+      - name: Sync Capacitor iOS Project
         script: |
           set -euo pipefail
           npx cap sync ios
-          cd ios/App
-          pod install
 
       - name: Set up code signing
         script: |
@@ -51,12 +54,7 @@ workflows:
       - name: Build Signed IPA
         script: |
           set -euo pipefail
-          workspace=$(find . -maxdepth 3 -name "*.xcworkspace" -print -quit)
-          if [ -z "$workspace" ]; then
-            echo "ERROR: Xcode workspace not found"
-            exit 1
-          fi
-          xcode-project build-ipa --workspace "$workspace" --export-method app-store
+          xcode-project build-ipa --project ios/App/App.xcodeproj --export-method app-store
 
     artifacts:
       - build/ios/ipa/*.ipa
