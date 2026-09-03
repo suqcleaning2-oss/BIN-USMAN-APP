@@ -1,6 +1,6 @@
 workflows:
-  ios-workflow:
-    name: iOS Release Build 801 With Firebase
+  ios-release-ipa:
+    name: iOS Release IPA 801 with Firebase
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
@@ -12,36 +12,51 @@ workflows:
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
+      cocoapods: default
     scripts:
-      - name: Add GoogleService-Info.plist
+      - name: Copy GoogleService-Info.plist
         script: |
           set -euo pipefail
-          printf '%s' "$GOOGLE_SERVICE_PLIST" | base64 --decode > ios/App/App/GoogleService-Info.plist
-          plutil -lint ios/App/App/GoogleService-Info.plist
+          plist_target="ios/App/GoogleService-Info.plist"
+          plist_source=$(find . -type f -name "GoogleService-Info.plist" \
+            ! -path "./$plist_target" -print -quit)
+          if [ -n "$plist_source" ]; then
+            echo "Found: $plist_source"
+            mkdir -p "$(dirname "$plist_target")"
+            cp "$plist_source" "$plist_target"
+          elif [ ! -f "$plist_target" ]; then
+            echo "ERROR: GoogleService-Info.plist not found in repo"
+            exit 1
+          fi
+          ls -la "$plist_target"
 
       - name: Set Build Number 801
         script: |
           set -euo pipefail
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "ios/App/App/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 2.2" "ios/App/App/Info.plist"
+          cd ios/App
+          agvtool new-version -all 801
 
-      - name: Build IPA with Fastlane
+      - name: Install Pods
         script: |
           set -euo pipefail
-          cd ios
-          fastlane gym \
-          --project App/App.xcodeproj \
-          --scheme App \
-          --export_method app-store \
-          --output_directory ../build/ios/ipa \
-          --output_name App.ipa \
-          --clean
+          npx cap sync ios
+          cd ios/App
+          pod install
 
-      - name: Upload to TestFlight
+      - name: Set up code signing
         script: |
           set -euo pipefail
-          fastlane pilot upload \
-          --ipa build/ios/ipa/App.ipa \
-          --skip_waiting_for_build_processing
+          xcode-project use-profiles
+
+      - name: Build Signed IPA
+        script: |
+          set -euo pipefail
+          workspace=$(find . -maxdepth 3 -name "*.xcworkspace" -print -quit)
+          if [ -z "$workspace" ]; then
+            echo "ERROR: Xcode workspace not found"
+            exit 1
+          fi
+          xcode-project build-ipa --workspace "$workspace" --export-method app-store
+
     artifacts:
       - build/ios/ipa/*.ipa
