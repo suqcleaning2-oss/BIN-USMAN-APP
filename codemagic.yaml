@@ -10,13 +10,14 @@ workflows:
       vars:
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
+        XCODE_PROJECT: "App.xcodeproj"
+        XCODE_SCHEME: "App"
       xcode: latest
       cocoapods: default
     scripts:
       - name: Force Set Unique Build Number
         script: |
-          # Codemagic ka BUILD_NUMBER le kar +700 kar denge. Har build unique hogi
-          UNIQUE_BUILD=$((700 + BUILD_NUMBER))
+          UNIQUE_BUILD=801
           echo "Setting build number to: $UNIQUE_BUILD"
 
           # Info.plist me build number set karo
@@ -33,15 +34,13 @@ workflows:
 
       - name: Build IPA
         script: |
-          WORKSPACE=$(find . -maxdepth 3 -name "*.xcworkspace" | head -n 1)
-          PROJECT=$(find . -maxdepth 3 -name "*.xcodeproj" | head -n 1)
+          WORKSPACE="ios/App/App.xcworkspace"
+          PROJECT="ios/App/$XCODE_PROJECT"
 
-          if [ -n "$WORKSPACE" ]; then
-            SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
-            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "$SCHEME"
-          elif [ -n "$PROJECT" ]; then
-            SCHEME=$(xcodebuild -project "$PROJECT" -list | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
-            xcode-project build-ipa --project "$PROJECT" --scheme "$SCHEME"
+          if [ -f "$WORKSPACE" ]; then
+            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "$XCODE_SCHEME"
+          elif [ -f "$PROJECT/project.pbxproj" ]; then
+            xcode-project build-ipa --project "$PROJECT" --scheme "$XCODE_SCHEME"
           fi
           
       - name: Upload to App Store via App Store Connect

@@ -1,7 +1,29 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDocFromServer, settings } from "firebase/firestore";
-import firebaseConfig from '../../firebase-applet-config.json';
+import { Platform } from "react-native";
+
+const iosConfig = {
+  apiKey: "AIzaSyD4DjP_aWBMYk0Rrk6KmfSpiHmXtYNNLc",
+  authDomain: "bin-usman-ab.firebaseapp.com",
+  projectId: "bin-usman-ab",
+  storageBucket: "bin-usman-ab.firebasestorage.app",
+  messagingSenderId: "948662076158",
+  appId: "1:948662076158:web:a0ff2a42ff6b1351dadbaf"
+};
+
+const firebaseConfig = Platform.OS === "ios"
+  ? iosConfig
+  : {
+      apiKey: process.env.VITE_FIREBASE_API_KEY,
+      authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.VITE_FIREBASE_APP_ID,
+      databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
+      firestoreDatabaseId: process.env.VITE_FIREBASE_DATABASE_ID
+    };
 
 // Initialize Firebase
 console.log("Initializing Firebase with project:", firebaseConfig.projectId);
