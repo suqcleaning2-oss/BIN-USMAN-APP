@@ -1,6 +1,6 @@
 workflows:
   ios-workflow:
-    name: iOS Release Build 801 Fastlane Fixed
+    name: iOS Release Build 801 With Firebase
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
@@ -13,13 +13,21 @@ workflows:
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
     scripts:
+      - name: Add GoogleService-Info.plist
+        script: |
+          set -euo pipefail
+          printf '%s' "$GOOGLE_SERVICE_PLIST" | base64 --decode > ios/App/App/GoogleService-Info.plist
+          plutil -lint ios/App/App/GoogleService-Info.plist
+
       - name: Set Build Number 801
         script: |
+          set -euo pipefail
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "ios/App/App/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 2.2" "ios/App/App/Info.plist"
 
       - name: Build IPA with Fastlane
         script: |
+          set -euo pipefail
           cd ios
           fastlane gym \
           --project App/App.xcodeproj \
@@ -31,6 +39,7 @@ workflows:
 
       - name: Upload to TestFlight
         script: |
+          set -euo pipefail
           fastlane pilot upload \
           --ipa build/ios/ipa/App.ipa \
           --skip_waiting_for_build_processing
