@@ -14,28 +14,35 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Verify GoogleService-Info.plist exists
+      - name: Find and Copy GoogleService-Info.plist
         script: |
-          if [ -f "App/GoogleService-Info.plist" ]; then
-            echo "GoogleService-Info.plist found in App folder"
-          else
-            echo "Error: GoogleService-Info.plist not found in App folder"
+          APP_DIR="ios/App"
+          PLIST="$APP_DIR/GoogleService-Info.plist"
+          SOURCE=$(find . -type f -iname "GoogleService-Info.plist" ! -path "./$PLIST" -print -quit)
+          if [ -z "$SOURCE" ] && [ ! -f "$PLIST" ]; then
+            echo "Error: GoogleService-Info.plist not found anywhere in repo"
             exit 1
+          fi
+          if [ -n "$SOURCE" ]; then
+            echo "Found plist at: $SOURCE"
+            cp "$SOURCE" "$PLIST"
+          else
+            echo "Using existing plist at: $PLIST"
           fi
 
       - name: Force Set Build Number 801
         script: |
-          PLIST_FILE="App/Info.plist"
+          PLIST_FILE="ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "$PLIST_FILE"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "$PLIST_FILE"
 
       - name: Install Pods
         script: |
-          cd App && pod install
+          cd ios/App && pod install
 
       - name: Build IPA
         script: |
-          xcode-project build-ipa --project "App.xcodeproj" --scheme "App"
+          xcode-project build-ipa --project "ios/App/App.xcodeproj" --scheme "App"
           
       - name: Publish to TestFlight
         script: |
