@@ -1,61 +1,42 @@
 workflows:
   ios-workflow:
-    name: iOS Release Build
+    name: iOS Release Build 801
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: binusman.application
+      groups:
+        - app_store_credentials
+        - ios_signing
       vars:
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
-        XCODE_PROJECT: "App.xcodeproj"
-        XCODE_SCHEME: "App"
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Force Set Unique Build Number
+      - name: Copy GoogleService-Info.plist
         script: |
-          UNIQUE_BUILD=801
-          echo "Setting build number to: $UNIQUE_BUILD"
+          cp GoogleService-Info.plist App/GoogleService-Info.plist
 
-          # Info.plist me build number set karo
-          PLIST_FILE=$(find ios -name "Info.plist" | head -n 1)
-          if [ -f "$PLIST_FILE" ]; then
-            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $UNIQUE_BUILD" "$PLIST_FILE"
-            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "$PLIST_FILE"
-            echo "Updated $PLIST_FILE to build $UNIQUE_BUILD"
-          fi
-
-      - name: Set up code signing
+      - name: Force Set Build Number 801
         script: |
-          xcode-project use-profiles
+          PLIST_FILE="App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "$PLIST_FILE"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "$PLIST_FILE"
+
+      - name: Install Pods
+        script: |
+          cd App && pod install
 
       - name: Build IPA
         script: |
-          WORKSPACE="ios/App/App.xcworkspace"
-          PROJECT="ios/App/$XCODE_PROJECT"
-
-          if [ -f "$WORKSPACE" ]; then
-            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "$XCODE_SCHEME"
-          elif [ -f "$PROJECT/project.pbxproj" ]; then
-            xcode-project build-ipa --project "$PROJECT" --scheme "$XCODE_SCHEME"
-          fi
+          xcode-project build-ipa --project "App.xcodeproj" --scheme "App"
           
-      - name: Upload to App Store via App Store Connect
+      - name: Publish to TestFlight
         script: |
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
-          if [ -z "$IPA_PATH" ]; then
-            echo "Error: IPA not found!"
-            exit 1
-          fi
-          
-          echo "Publishing $IPA_PATH to TestFlight..."
-          app-store-connect publish \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "$APP_STORE_CONNECT_PRIVATE_KEY" \
-            --path "$IPA_PATH"
+          app-store-connect publish --path "$IPA_PATH"
     artifacts:
       - build/ios/ipa/*.ipa
