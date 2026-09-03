@@ -13,35 +13,24 @@ workflows:
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
     scripts:
-      - name: Find and Copy GoogleService-Info.plist
+      - name: Set Build Number 801
         script: |
-          APP_DIR="ios/App"
-          PLIST="$APP_DIR/GoogleService-Info.plist"
-          SOURCE=$(find . -type f -iname "GoogleService-Info.plist" ! -path "./$PLIST" -print -quit)
-          if [ -z "$SOURCE" ] && [ ! -f "$PLIST" ]; then
-            echo "Error: GoogleService-Info.plist not found anywhere in repo"
-            exit 1
-          fi
-          if [ -n "$SOURCE" ]; then
-            echo "Found plist at: $SOURCE"
-            cp "$SOURCE" "$PLIST"
-          else
-            echo "Using existing plist at: $PLIST"
-          fi
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "ios/App/App/Info.plist"
 
-      - name: Force Set Build Number 801
+      - name: Build IPA with Fastlane
         script: |
-          PLIST_FILE="ios/App/App/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "$PLIST_FILE"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "$PLIST_FILE"
+          fastlane run build_app \
+          project:"ios/App/App.xcodeproj" \
+          scheme:"App" \
+          export_method:"app-store" \
+          output_directory:"build/ios/ipa" \
+          output_name:"App.ipa"
 
-      - name: Build IPA
+      - name: Upload to TestFlight
         script: |
-          xcode-project build-ipa --project "ios/App/App.xcodeproj" --scheme "App"
-          
-      - name: Publish to TestFlight
-        script: |
-          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
-          app-store-connect publish --path "$IPA_PATH"
+          fastlane run upload_to_testflight \
+          ipa:"build/ios/ipa/App.ipa" \
+          skip_waiting_for_build_processing:true
     artifacts:
       - build/ios/ipa/*.ipa
