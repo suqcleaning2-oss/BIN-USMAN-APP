@@ -7,12 +7,10 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: binusman.application
-      groups:
-        - app_store_credentials
-        - ios_signing
       vars:
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
+        APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
       cocoapods: default
     scripts:
