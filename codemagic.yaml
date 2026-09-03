@@ -14,9 +14,14 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Copy GoogleService-Info.plist
+      - name: Verify GoogleService-Info.plist exists
         script: |
-          cp GoogleService-Info.plist App/GoogleService-Info.plist
+          if [ -f "App/GoogleService-Info.plist" ]; then
+            echo "GoogleService-Info.plist found in App folder"
+          else
+            echo "Error: GoogleService-Info.plist not found in App folder"
+            exit 1
+          fi
 
       - name: Force Set Build Number 801
         script: |
