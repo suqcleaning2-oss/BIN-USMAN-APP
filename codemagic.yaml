@@ -1,60 +1,72 @@
 workflows:
-  ios-release-ipa:
-    name: iOS Release IPA 801 with Firebase
-    instance_type: mac_mini_m1
+  ios-signed-ipa:
+    name: iOS Signed IPA - Build 801
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       ios_signing:
-        distribution_type: app_store
+        distribution_type: ad_hoc
         bundle_identifier: binusman.application
       vars:
+        BUNDLE_ID: binusman.application
+        BUILD_NUMBER: "801"
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
-      node: 20
+      node: 22.6.0
+      cocoapods: default
     scripts:
-      - name: Copy GoogleService-Info.plist
+      - name: Add GoogleService-Info.plist if exists
         script: |
           set -euo pipefail
           plist_target="ios/App/GoogleService-Info.plist"
           plist_source=$(find . -type f -name "GoogleService-Info.plist" \
             ! -path "./$plist_target" -print -quit)
           if [ -n "$plist_source" ]; then
-            echo "Found: $plist_source"
+            echo "Found GoogleService-Info.plist at: $plist_source"
             mkdir -p "$(dirname "$plist_target")"
             cp "$plist_source" "$plist_target"
-          elif [ ! -f "$plist_target" ]; then
-            echo "ERROR: GoogleService-Info.plist not found in repo"
-            exit 1
+            echo "Copied to $plist_target"
+          elif [ -f "$plist_target" ]; then
+            echo "GoogleService-Info.plist already exists at $plist_target"
+          else
+            echo "GoogleService-Info.plist not found in repo. Skipping."
           fi
-          ls -la "$plist_target"
+
+      - name: Install npm deps
+        script: npm install
+
+      - name: Build Vite
+        script: npm run build
+
+      - name: Sync Capacitor iOS
+        script: npx cap sync ios
 
       - name: Set Build Number 801
         script: |
           set -euo pipefail
           cd ios/App
-          agvtool new-version -all 801
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" App/Info.plist
 
-      - name: Install JS Dependencies
-        script: |
-          set -euo pipefail
-          npm install
-
-      - name: Sync Capacitor iOS Project
-        script: |
-          set -euo pipefail
-          npx cap sync ios
+      - name: Install Pods
+        script: cd ios/App && pod install
 
       - name: Set up code signing
         script: |
           set -euo pipefail
           xcode-project use-profiles
 
-      - name: Build Signed IPA
+      - name: Build IPA
         script: |
           set -euo pipefail
-          xcode-project build-ipa --project ios/App/App.xcodeproj --export-method app-store
-
+          cd ios
+          fastlane gym \
+          --project App/App.xcodeproj \
+          --scheme App \
+          --export_method ad-hoc \
+          --output_directory build \
+          --output_name App.ipa \
+          --clean
     artifacts:
-      - build/ios/ipa/*.ipa
+      - ios/build/*.ipa
