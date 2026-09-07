@@ -21,7 +21,7 @@ workflows:
         script: |
           npx cap sync ios
           cd ios/App
-          echo "platform :ios, '14.0'" > Podfile
+          echo "platform :ios, '15.0'" > Podfile
           echo "use_frameworks!" >> Podfile
           echo "target 'App' do" >> Podfile
           echo "  pod 'Firebase', '12.7.0'" >> Podfile
