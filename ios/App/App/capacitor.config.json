@@ -2,5 +2,8 @@
 	"appId": "binusman.application",
 	"appName": "BIN USMAN APP",
 	"webDir": "dist",
-	"packageClassList": []
+	"packageClassList": [
+		"FirebaseAuthenticationPlugin",
+		"FirebaseFirestorePlugin"
+	]
 }

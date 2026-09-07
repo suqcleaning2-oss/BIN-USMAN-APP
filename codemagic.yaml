@@ -48,7 +48,7 @@ workflows:
       - name: Build Signed IPA
         script: |
           cd ios
-          xcode-project build-ipa --export-method app-store --output build
+          xcode-project build-ipa --export-method app-store
 
     artifacts:
       - ios/build/*.ipa
