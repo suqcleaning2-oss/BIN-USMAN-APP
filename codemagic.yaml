@@ -1,63 +1,32 @@
 workflows:
-  ios-release-ipa:
-    name: iOS Release IPA 801 with Firebase RN Capacitor
-    instance_type: mac_mini_m1
+  ios-ipa:
+    name: iOS Signed IPA
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       vars:
-        BUNDLE_ID: binusman.application
-        BUILD_NUMBER: 801
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        BUNDLE_ID: "binusman.application"
+        EXPORT_METHOD: "app-store"
+      node: 22.6.0
       xcode: latest
       cocoapods: default
-      node: 22.6.0
     scripts:
-      - name: Install JS Dependencies
-        script: npm install
-
-      - name: Build Vite
-        script: npm run build
-
-      - name: Sync Capacitor iOS
-        script: npx cap sync ios
-
+      - name: Install dependencies
+        script: |
+          npm ci
+          npx cap sync ios
       - name: Copy GoogleService-Info.plist
         script: |
-          PLIST_SRC=$(find . -name "GoogleService-Info.plist" | head -n 1)
-          if [ -z "$PLIST_SRC" ]; then
-            echo "ERROR: GoogleService-Info.plist not found in repo"
-            exit 1
-          fi
-          mkdir -p ios/App
-          cp "$PLIST_SRC" ios/App/GoogleService-Info.plist
-          echo "Copied $PLIST_SRC to ios/App/GoogleService-Info.plist"
-
-      - name: Set Build Number 801
+          cp ios/App/GoogleService-Info.plist ios/App/GoogleService-Info.plist
+      - name: Build iOS IPA
         script: |
           cd ios/App
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
-
-      - name: Install Pods
-        script: |
-          cd ios/App
-          pod install
-
-      - name: Set up code signing
-        script: |
-          xcode-project use-profiles
-
-      - name: Build Signed IPA
-        script: |
-          cd ios
-          xcode-project build-ipa --export-method app-store
-
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive
+          xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath $CM_BUILD_DIR
     artifacts:
-      - ios/build/*.ipa
-
-    ios_signing:
-      distribution_type: app_store
-      bundle_identifier: binusman.application
-
-    app_store_connect:
-      key_id: 9F33Z6XYHY
-      issuer_id: 18e19531-f1a6-4489-93ec-016e4260b4fd
-      key: AuthKey_9F33Z6XYHY.p8
+      - $CM_BUILD_DIR/*.ipa
+    publishing:
+      email:
+        recipients:
+          - your-email@gmail.com
