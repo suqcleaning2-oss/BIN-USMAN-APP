@@ -9,9 +9,8 @@ workflows:
           - /tmp/profile.mobileprovision
         certificates:
           - /tmp/cert.p12
-        keychain: codemagic
       vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_WORKSPACE: "ios/App.xcworkspace"
         BUNDLE_ID: "binusman.application"
         APP_STORE_CONNECT_KEY_ID: "9F33Z6XYHY"
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
@@ -20,11 +19,9 @@ workflows:
       cocoapods: default
     scripts:
       - name: Install NPM dependencies
-        script: |
-          npm ci
+        script: npm ci
       - name: Build Web App
-        script: |
-          npm run build
+        script: npm run build
       - name: Sync iOS
         script: |
           npx cap sync ios
