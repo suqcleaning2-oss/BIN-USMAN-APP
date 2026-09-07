@@ -20,11 +20,18 @@ workflows:
       - name: Sync iOS
         script: |
           npx cap sync ios
-          cd ios/App && pod init && pod install
+          cd ios/App
+          echo "platform :ios, '14.0'" > Podfile
+          echo "use_frameworks!" >> Podfile
+          echo "target 'App' do" >> Podfile
+          echo "  pod 'Firebase', '12.7.0'" >> Podfile
+          echo "  pod 'FirebaseFirestore', '12.7.0'" >> Podfile
+          echo "end" >> Podfile
+          pod install --repo-update
       - name: Build iOS IPA
         script: |
           cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive
-          xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath $CM_BUILD_DIR
+          xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath $CM_BUILD_DIR
     artifacts:
       - $CM_BUILD_DIR/*.ipa
