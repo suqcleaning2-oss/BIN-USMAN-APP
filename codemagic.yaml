@@ -20,9 +20,20 @@ workflows:
         script: npm ci
       - name: Build Web App
         script: npm run build
-      - name: Sync Capacitor iOS project
+      - name: Sync iOS with Firebase 12
         script: |
           npx cap sync ios
+          cd ios/App
+          rm -rf Pods Podfile.lock
+          pod repo update
+          echo "platform :ios, '15.0'" > Podfile
+          echo "use_frameworks!" >> Podfile
+          echo "target 'App' do" >> Podfile
+          echo "  pod 'Firebase', '12.7.0'" >> Podfile
+          echo "  pod 'FirebaseFirestore', '12.7.0'" >> Podfile
+          echo "  pod 'FirebaseAuth', '12.7.0'" >> Podfile
+          echo "end" >> Podfile
+          pod install --no-repo-update
       - name: Set Build Number to 801
         script: |
           cd ios/App
@@ -30,7 +41,7 @@ workflows:
       - name: Build iOS IPA
         script: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 -skipPackagePluginValidation
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 -allowProvisioningUpdates
           xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath $CM_BUILD_DIR
     artifacts:
       - $CM_BUILD_DIR/*.ipa
