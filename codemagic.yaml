@@ -12,6 +12,8 @@ workflows:
       node: 22.6.0
       xcode: latest
       cocoapods: default
+      ios_signing:
+        distribution_type: app_store
     scripts:
       - name: Install NPM dependencies
         script: npm ci
@@ -32,10 +34,14 @@ workflows:
           echo "  pod 'FirebaseCrashlytics', '12.7.0'" >> Podfile
           echo "end" >> Podfile
           pod install --no-repo-update
+      - name: Set Build Number to 801
+        script: |
+          cd ios/App
+          agvtool new-version -all 801
       - name: Build iOS IPA
         script: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO -skipPackagePluginValidation -skipMacroValidation
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 -skipPackagePluginValidation
           xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath $CM_BUILD_DIR
     artifacts:
       - $CM_BUILD_DIR/*.ipa
