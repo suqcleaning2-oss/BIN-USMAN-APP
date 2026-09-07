@@ -5,7 +5,7 @@ workflows:
     max_build_duration: 60
     environment:
       vars:
-        XCODE_WORKSPACE: "ios/App.xcworkspace"
+        XCODE_PROJECT: "ios/App.xcodeproj"
         BUNDLE_ID: "binusman.application"
         APP_STORE_CONNECT_KEY_ID: "9F33Z6XYHY"
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
@@ -20,20 +20,10 @@ workflows:
         script: npm ci
       - name: Build Web App
         script: npm run build
-      - name: Sync iOS with Firebase 11
+      - name: Sync iOS with Firebase 11 SPM
         script: |
+          find node_modules/@capacitor-firebase -name Package.swift -type f -exec perl -pi -e 's/\.upToNextMajor\(from: "12\.7\.0"\)/.exact("11.12.0")/g' {} +
           npx cap sync ios
-          cd ios/App
-          rm -rf Pods Podfile.lock
-          pod repo update
-          echo "platform :ios, '14.0'" > Podfile
-          echo "use_frameworks!" >> Podfile
-          echo "target 'App' do" >> Podfile
-          echo "  pod 'Firebase', '11.12.0'" >> Podfile
-          echo "  pod 'FirebaseFirestore', '11.12.0'" >> Podfile
-          echo "  pod 'FirebaseAuth', '11.12.0'" >> Podfile
-          echo "end" >> Podfile
-          pod install --no-repo-update
       - name: Set Build Number to 801
         script: |
           cd ios/App
@@ -41,7 +31,7 @@ workflows:
       - name: Build iOS IPA
         script: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=14.0 -allowProvisioningUpdates
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 -allowProvisioningUpdates
           xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath $CM_BUILD_DIR
     artifacts:
       - $CM_BUILD_DIR/*.ipa
