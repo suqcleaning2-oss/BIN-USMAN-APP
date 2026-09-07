@@ -5,9 +5,8 @@ workflows:
     max_build_duration: 60
     environment:
       vars:
+        BUNDLE_ID: binusman.application
         BUILD_NUMBER: 801
-        APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
-        APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
       xcode: latest
       cocoapods: default
       node: 22.6.0
