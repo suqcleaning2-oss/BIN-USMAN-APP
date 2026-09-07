@@ -20,7 +20,7 @@ workflows:
       - name: Sync iOS
         script: |
           npx cap sync ios
-          cd ios/App && pod install
+          cd ios/App && pod init && pod install
       - name: Build iOS IPA
         script: |
           cd ios/App
