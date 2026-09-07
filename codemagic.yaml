@@ -4,17 +4,23 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: binusman.application
       vars:
+        BUILD_NUMBER: 801
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
-        APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
       cocoapods: default
       node: 22.6.0
     scripts:
+      - name: Install JS Dependencies
+        script: npm install
+
+      - name: Build Vite
+        script: npm run build
+
+      - name: Sync Capacitor iOS
+        script: npx cap sync ios
+
       - name: Copy GoogleService-Info.plist
         script: |
           PLIST_SRC=$(find . -name "GoogleService-Info.plist" | head -n 1)
@@ -24,27 +30,17 @@ workflows:
           fi
           mkdir -p ios/App
           cp "$PLIST_SRC" ios/App/GoogleService-Info.plist
+          echo "Copied $PLIST_SRC to ios/App/GoogleService-Info.plist"
 
       - name: Set Build Number 801
         script: |
-          PLIST_FILE=$(find ios -name "Info.plist" | head -n 1)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "$PLIST_FILE"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 2.2" "$PLIST_FILE"
-
-      - name: Install JS Dependencies
-        script: |
-          node -v  # check karne ke liye
-          npm ci  # npm install se fast hai
-
-      - name: Sync Capacitor iOS
-        script: |
-          npx cap sync ios
+          cd ios/App
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
       - name: Install Pods
         script: |
-          cd ios
-          pod install --repo-update
-          cd ..
+          cd ios/App
+          pod install
 
       - name: Set up code signing
         script: |
@@ -56,4 +52,13 @@ workflows:
           xcode-project build-ipa --export-method app-store
 
     artifacts:
-      - build/ios/ipa/*.ipa
+      - ios/build/*.ipa
+
+    ios_signing:
+      distribution_type: app_store
+      bundle_identifier: binusman.application
+
+    app_store_connect:
+      key_id: 9F33Z6XYHY
+      issuer_id: 18e19531-f1a6-4489-93ec-016e4260b4fd
+      key: AuthKey_9F33Z6XYHY.p8
