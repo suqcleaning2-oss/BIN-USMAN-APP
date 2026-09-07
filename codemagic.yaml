@@ -28,14 +28,17 @@ workflows:
           echo "target 'App' do" >> Podfile
           echo "  pod 'Firebase', '12.7.0'" >> Podfile
           echo "  pod 'FirebaseFirestore', '12.7.0'" >> Podfile
-          echo "  pod 'FirebaseAuth', '12.7.0'" >> Podfile
-          echo "  pod 'FirebaseCrashlytics', '12.7.0'" >> Podfile
           echo "end" >> Podfile
           pod install --no-repo-update
+      - name: Set iOS Deployment Target to 14
+        script: |
+          cd ios/App
+          /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 14.0" App/Info.plist
+          xcodebuild -project App.xcodeproj -target App IPHONEOS_DEPLOYMENT_TARGET=14.0
       - name: Build iOS IPA
         script: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=14.0 CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
           xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath $CM_BUILD_DIR
     artifacts:
       - $CM_BUILD_DIR/*.ipa
