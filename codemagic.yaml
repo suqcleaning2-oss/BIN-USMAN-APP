@@ -1,72 +1,59 @@
 workflows:
-  ios-signed-ipa:
-    name: iOS Signed IPA - Build 801
-    instance_type: mac_mini_m2
+  ios-release-ipa:
+    name: iOS Release IPA 801 with Firebase RN Capacitor
+    instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
       ios_signing:
-        distribution_type: ad_hoc
+        distribution_type: app_store
         bundle_identifier: binusman.application
       vars:
-        BUNDLE_ID: binusman.application
-        BUILD_NUMBER: "801"
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       xcode: latest
-      node: 22.6.0
       cocoapods: default
+      node: 22.6.0
     scripts:
-      - name: Add GoogleService-Info.plist if exists
+      - name: Copy GoogleService-Info.plist
         script: |
-          set -euo pipefail
-          plist_target="ios/App/GoogleService-Info.plist"
-          plist_source=$(find . -type f -name "GoogleService-Info.plist" \
-            ! -path "./$plist_target" -print -quit)
-          if [ -n "$plist_source" ]; then
-            echo "Found GoogleService-Info.plist at: $plist_source"
-            mkdir -p "$(dirname "$plist_target")"
-            cp "$plist_source" "$plist_target"
-            echo "Copied to $plist_target"
-          elif [ -f "$plist_target" ]; then
-            echo "GoogleService-Info.plist already exists at $plist_target"
-          else
-            echo "GoogleService-Info.plist not found in repo. Skipping."
+          PLIST_SRC=$(find . -name "GoogleService-Info.plist" | head -n 1)
+          if [ -z "$PLIST_SRC" ]; then
+            echo "ERROR: GoogleService-Info.plist not found in repo"
+            exit 1
           fi
-
-      - name: Install npm deps
-        script: npm install
-
-      - name: Build Vite
-        script: npm run build
-
-      - name: Sync Capacitor iOS
-        script: npx cap sync ios
+          mkdir -p ios/App
+          cp "$PLIST_SRC" ios/App/GoogleService-Info.plist
 
       - name: Set Build Number 801
         script: |
-          set -euo pipefail
-          cd ios/App
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" App/Info.plist
+          PLIST_FILE=$(find ios -name "Info.plist" | head -n 1)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 801" "$PLIST_FILE"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 2.2" "$PLIST_FILE"
+
+      - name: Install JS Dependencies
+        script: |
+          node -v  # check karne ke liye
+          npm ci  # npm install se fast hai
+
+      - name: Sync Capacitor iOS
+        script: |
+          npx cap sync ios
 
       - name: Install Pods
-        script: cd ios/App && pod install
+        script: |
+          cd ios
+          pod install --repo-update
+          cd ..
 
       - name: Set up code signing
         script: |
-          set -euo pipefail
           xcode-project use-profiles
 
-      - name: Build IPA
+      - name: Build Signed IPA
         script: |
-          set -euo pipefail
           cd ios
-          fastlane gym \
-          --project App/App.xcodeproj \
-          --scheme App \
-          --export_method ad-hoc \
-          --output_directory build \
-          --output_name App.ipa \
-          --clean
+          xcode-project build-ipa --export-method app-store
+
     artifacts:
-      - ios/build/*.ipa
+      - build/ios/ipa/*.ipa
