@@ -4,11 +4,6 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
-      ios_signing:
-        provisioning_profiles:
-          - /tmp/profile.mobileprovision
-        certificates:
-          - /tmp/cert.p12
       vars:
         XCODE_WORKSPACE: "ios/App.xcworkspace"
         BUNDLE_ID: "binusman.application"
