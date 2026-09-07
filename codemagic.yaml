@@ -4,21 +4,31 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
+      ios_signing:
+        provisioning_profiles:
+          - /tmp/profile.mobileprovision
+        certificates:
+          - /tmp/cert.p12
+        keychain: codemagic
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         BUNDLE_ID: "binusman.application"
-        EXPORT_METHOD: "app-store"
+        APP_STORE_CONNECT_KEY_ID: "9F33Z6XYHY"
+        APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
       node: 22.6.0
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Install dependencies
+      - name: Install NPM dependencies
         script: |
           npm ci
-          npx cap sync ios
-      - name: Copy GoogleService-Info.plist
+      - name: Build Web App
         script: |
-          cp ios/App/GoogleService-Info.plist ios/App/GoogleService-Info.plist
+          npm run build
+      - name: Sync iOS
+        script: |
+          npx cap sync ios
+          npx pod-install ios/App
       - name: Build iOS IPA
         script: |
           cd ios/App
@@ -26,7 +36,3 @@ workflows:
           xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath $CM_BUILD_DIR
     artifacts:
       - $CM_BUILD_DIR/*.ipa
-    publishing:
-      email:
-        recipients:
-          - your-email@gmail.com
