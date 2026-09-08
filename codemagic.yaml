@@ -31,7 +31,7 @@ workflows:
       - name: Build iOS IPA
         script: |
           cd ios/App
-          xcodebuild -project App.xcodeproj -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 -allowProvisioningUpdates
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 DEVELOPMENT_TEAM=K6C6PRCJ3K -allowProvisioningUpdates
           xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath $CM_BUILD_DIR
     artifacts:
       - $CM_BUILD_DIR/*.ipa
