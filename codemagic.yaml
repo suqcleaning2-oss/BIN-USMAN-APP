@@ -27,8 +27,6 @@ workflows:
       - name: Configure iOS signing
         script: |
           xcode-project use-profiles
-          echo "Signing team: $DEVELOPMENT_TEAM"
-          echo "Provisioning profile: $CM_PROVISIONING_PROFILE_NAME"
       - name: Set Build Number to 801
         script: |
           cd ios/App
@@ -36,7 +34,7 @@ workflows:
       - name: Build iOS IPA
         script: |
           cd ios/App
-          xcodebuild -project App.xcodeproj -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=K6C6PRCJ3K CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="$CM_PROVISIONING_PROFILE_NAME" -allowProvisioningUpdates
-          xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath $CM_BUILD_DIR
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 -allowProvisioningUpdates
+          xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist "$HOME/export_options.plist" -exportPath $CM_BUILD_DIR
     artifacts:
       - $CM_BUILD_DIR/*.ipa
