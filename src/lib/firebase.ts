@@ -8,12 +8,12 @@ let auth;
 let db;
 
 const firebaseConfig = {
-  apiKey: "AIzaSy0ADJP_aWBmYK0RkReKaFSp1mHXTYNNLC",
+  apiKey: "AIzaSyD4DjP_6W8myk0Qrk6kmfSpiHeMxtYNNlc",
   authDomain: "bin-usman-ab.firebaseapp.com",
   projectId: "bin-usman-ab",
   storageBucket: "bin-usman-ab.firebasestorage.app",
-  messagingSenderId: "848682076158",
-  appId: "1:848682076158:web:ai0ff2a42ff6b1353dad1af"
+  messagingSenderId: "948662076158",
+  appId: "1:948662076158:web:2690704da003c325dadbaf"
 };
 
 if (!getApps().length) {
@@ -23,8 +23,14 @@ if (!getApps().length) {
 }
 
 auth = getAuth(app);
-db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
+
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+} catch (error) {
+  console.warn('[Firebase] Persistent Firestore cache unavailable; using network mode.', error);
+  db = getFirestore(app);
+}
 
 export { app, auth, db };
