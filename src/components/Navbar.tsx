@@ -85,7 +85,7 @@ export default function Navbar() {
   return (
     <>
       <header className={`border-b ${isDark ? 'border-zinc-800/80 bg-[#07090E]/95' : 'border-secondary/80 bg-white/95'} fixed top-0 left-0 right-0 w-full z-40 transition-all duration-500 shadow-sm backdrop-blur-md`}>
-        <div className="container mx-auto px-4 sm:px-6 h-24 flex items-center">
+        <div className="container mx-auto px-4 sm:px-6 h-24 flex items-center min-w-0 overflow-hidden">
           <button 
             onClick={() => setIsDrawerOpen(true)}
             className={`w-12 h-12 flex items-center justify-center rounded-2xl ${isDark ? 'bg-white/5 border border-white/10 text-white hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37]' : 'bg-secondary/25 border border-secondary text-heading hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37]'} transition-all duration-500 active:scale-90 cursor-pointer shadow-inner shrink-0`}
@@ -94,7 +94,7 @@ export default function Navbar() {
             <Menu size={24} strokeWidth={1.5} />
           </button>
 
-          <Link to="/" className="flex items-center gap-2 sm:gap-3.5 group select-none ml-2 sm:ml-4">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3.5 group select-none ml-2 sm:ml-4 min-w-0">
             {/* Pure, Streamlined Floating Circular Logo Emblem */}
             <div className="w-[44px] h-[44px] sm:w-[52px] sm:h-[52px] rounded-full overflow-hidden shrink-0 flex items-center justify-center transition-all duration-700 group-hover:scale-110 active:scale-95 shadow-md bg-transparent relative">
               <img 
@@ -112,13 +112,13 @@ export default function Navbar() {
                 textShadow: isDark ? '0px 1.5px 3px rgba(0, 0, 0, 0.6), 0px 0px 1px rgba(255, 255, 255, 0.2)' : 'none',
                 letterSpacing: '0.04em'
               }}
-              className={`text-lg sm:text-2xl md:text-3xl font-extrabold uppercase leading-none flex items-center bg-gradient-to-b ${isDark ? 'from-[#FFFDF0] via-[#D4AF37] to-[#95731C]' : 'from-[#1a1a1a] via-[#D4AF37] to-[#111111]'} bg-clip-text text-transparent group-hover:text-[#D4AF37] transition-all duration-500`}
+              className={`text-[15px] sm:text-2xl md:text-3xl font-extrabold uppercase leading-none truncate flex items-center bg-gradient-to-b ${isDark ? 'from-[#FFFDF0] via-[#D4AF37] to-[#95731C]' : 'from-[#1a1a1a] via-[#D4AF37] to-[#111111]'} bg-clip-text text-transparent group-hover:text-[#D4AF37] transition-all duration-500`}
             >
               BIN&nbsp;USMAN
             </span>
           </Link>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
              {/* Fast Header Theme Toggle accessible on all screen sizes */}
              <button
                onClick={toggleTheme}

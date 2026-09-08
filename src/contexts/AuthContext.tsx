@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -79,25 +79,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (firebaseUser) {
-        // Listen to profile changes in Firestore
+        try {
+          await firebaseUser.getIdToken();
+        } catch (error) {
+          console.warn("[Auth] Could not refresh ID token before profile listen:", error);
+        }
+
+        const fallbackProfile: UserProfile = {
+          id: firebaseUser.uid,
+          fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          email: firebaseUser.email || '',
+          phone: '',
+          role: firebaseUser.email === 'suqcleaning2@gmail.com' || firebaseUser.email === 'mqaisar11550@gmail.com' ? 'admin' : 'user'
+        };
+
         const profileRef = doc(db, 'users', firebaseUser.uid);
         unsubscribeProfile = onSnapshot(profileRef, (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as UserProfile);
           } else {
-            // Fallback for new users or if doc doesn't exist yet
-            const isAdminEmail = firebaseUser.email === 'suqcleaning2@gmail.com' || firebaseUser.email === 'mqaisar11550@gmail.com';
-            setProfile({
-              id: firebaseUser.uid,
-              fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              email: firebaseUser.email || '',
-              phone: '',
-              role: isAdminEmail ? 'admin' : 'user'
-            });
+            setProfile(fallbackProfile);
           }
           setLoading(false);
         }, (error) => {
           console.error("Error listening to profile:", error);
+          setProfile(fallbackProfile);
           setLoading(false);
         });
       } else {

@@ -2,8 +2,17 @@
 	"appId": "binusman.application",
 	"appName": "BIN USMAN APP",
 	"webDir": "dist",
+	"ios": {
+		"contentInset": "never",
+		"scrollEnabled": true
+	},
 	"packageClassList": [
-		"FirebaseAuthenticationPlugin",
-		"FirebaseFirestorePlugin"
-	]
+		"FirebaseAuthenticationPlugin"
+	],
+	"plugins": {
+		"FirebaseAuthentication": {
+			"skipNativeAuth": true,
+			"providers": ["google.com"]
+		}
+	}
 }

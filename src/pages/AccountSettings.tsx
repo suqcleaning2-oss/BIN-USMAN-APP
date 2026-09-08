@@ -6,10 +6,9 @@ import {
   EmailAuthProvider, 
   reauthenticateWithCredential, 
   updatePassword, 
-  deleteUser, 
-  GoogleAuthProvider, 
-  reauthenticateWithPopup 
+  deleteUser
 } from 'firebase/auth';
+import { reauthenticateWithGoogle } from '../lib/google-auth';
 import { 
   collection, 
   query, 
@@ -259,9 +258,7 @@ export default function AccountSettings() {
     setDeleting(true);
     try {
       if (isGoogleUser) {
-        // Re-auth Google user
-        const provider = new GoogleAuthProvider();
-        await reauthenticateWithPopup(user, provider);
+        await reauthenticateWithGoogle(user);
         await executeAccountDeletion();
       } else {
         // Re-auth password user

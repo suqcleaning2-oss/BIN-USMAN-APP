@@ -3,12 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { fetchAppContent, AppContentDoc } from '../services/appContentService';
 import { ArrowLeft, Compass, Loader2, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AboutUs() {
   const [data, setData] = useState<AppContentDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const bodyText = isDark ? 'text-zinc-300' : 'text-body/80';
+  const mutedText = isDark ? 'text-zinc-500' : 'text-body/50';
+  const cardClass = isDark
+    ? 'bg-[#151515] border-zinc-800'
+    : 'bg-white border-secondary';
+  const backClass = isDark
+    ? 'bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800'
+    : 'bg-white border-secondary text-heading hover:bg-neutral-50';
 
   const loadData = async () => {
     setLoading(true);
@@ -45,14 +56,14 @@ export default function AboutUs() {
       
       if (trimmed.startsWith('### ')) {
         return (
-          <h3 key={idx} className="text-xl sm:text-2xl font-semibold tracking-tight text-heading mt-10 mb-4 first:mt-0 uppercase">
+          <h3 key={idx} className={`text-xl sm:text-2xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-heading'} mt-10 mb-4 first:mt-0 uppercase`}>
             {trimmed.slice(4)}
           </h3>
         );
       }
       if (trimmed.startsWith('## ')) {
         return (
-          <h2 key={idx} className="text-2xl sm:text-3xl font-semibold tracking-tight text-heading mt-12 mb-4 first:mt-0 uppercase">
+          <h2 key={idx} className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-heading'} mt-12 mb-4 first:mt-0 uppercase`}>
             {trimmed.slice(3)}
           </h2>
         );
@@ -61,10 +72,10 @@ export default function AboutUs() {
         const match = trimmed.match(/^- \*\*(.*?)\*\*:\s*(.*)/);
         if (match) {
           return (
-            <div key={idx} className="flex gap-4 text-sm text-body/70 ml-2 sm:ml-4 mb-4 leading-relaxed">
+            <div key={idx} className={`flex gap-4 text-sm ${bodyText} ml-2 sm:ml-4 mb-4 leading-relaxed`}>
               <span className="text-primary-dark select-none font-bold mt-0.5 text-lg">•</span>
               <p>
-                <strong className="text-heading font-semibold text-base block mb-0.5">{match[1]}</strong>
+                <strong className={`${isDark ? 'text-white' : 'text-heading'} font-semibold text-base block mb-0.5`}>{match[1]}</strong>
                 {match[2]}
               </p>
             </div>
@@ -73,14 +84,14 @@ export default function AboutUs() {
       }
       if (trimmed.startsWith('- ')) {
         return (
-          <div key={idx} className="flex gap-4 text-sm text-body/70 ml-2 sm:ml-4 mb-4 leading-relaxed">
+          <div key={idx} className={`flex gap-4 text-sm ${bodyText} ml-2 sm:ml-4 mb-4 leading-relaxed`}>
             <span className="text-primary-dark select-none font-bold mt-0.5 text-lg">•</span>
             <p>{trimmed.slice(2)}</p>
           </div>
         );
       }
       return (
-        <p key={idx} className="text-sm sm:text-base text-body/70 leading-relaxed mb-6 italic-body">
+        <p key={idx} className={`text-sm sm:text-base ${bodyText} leading-relaxed mb-6`}>
           {trimmed}
         </p>
       );
@@ -92,23 +103,23 @@ export default function AboutUs() {
       <div className="flex items-center justify-between z-10">
         <button
           onClick={handleBack}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-secondary text-[10px] font-black uppercase tracking-[0.2em] text-heading hover:bg-neutral-50 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
+          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full border text-[10px] font-black uppercase tracking-[0.2em] hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group ${backClass}`}
         >
           <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" strokeWidth={2.5} />
           <span>Back</span>
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b border-secondary pb-10">
+      <div className={`flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b pb-10 ${isDark ? 'border-zinc-800' : 'border-secondary'}`}>
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-primary-dark text-[9px] font-black uppercase tracking-widest">
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-primary-dark text-[9px] font-black uppercase tracking-widest ${isDark ? 'bg-primary-dark/10 border border-primary-dark/20' : 'bg-primary/5 border border-primary/10'}`}>
             <Compass size={10} />
             <span>Our Journey</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tighter uppercase text-heading leading-none">
+          <h1 className={`text-4xl md:text-5xl font-semibold tracking-tighter uppercase leading-none ${isDark ? 'text-white' : 'text-heading'}`}>
             About <span className="text-primary-dark italic font-normal">Us</span>
           </h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-body/30 max-w-xs">
+          <p className={`text-[10px] font-black uppercase tracking-[0.2em] max-w-xs ${mutedText}`}>
             Pakistan's Premium Luxury Lodgings & Rentals
           </p>
         </div>
@@ -117,16 +128,16 @@ export default function AboutUs() {
       {loading ? (
         <div className="py-24 flex flex-col items-center justify-center gap-4">
           <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-body/30 animate-pulse">
+          <p className={`text-[10px] font-black uppercase tracking-[0.25em] animate-pulse ${mutedText}`}>
             Loading our story...
           </p>
         </div>
       ) : error ? (
-        <div className="text-center py-20 bg-white rounded-[2rem] border border-secondary p-8 space-y-4">
-          <p className="text-sm text-body/60">Failed to load the about page.</p>
+        <div className={`text-center py-20 rounded-[2rem] border p-8 space-y-4 ${cardClass}`}>
+          <p className={`text-sm ${bodyText}`}>Failed to load the about page.</p>
           <button 
             onClick={loadData}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-secondary text-xs font-bold text-heading hover:bg-neutral-50 transition-colors"
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold transition-colors ${backClass}`}
           >
             <RefreshCw size={12} />
             <span>Retry</span>
@@ -134,12 +145,11 @@ export default function AboutUs() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-12">
-          {/* Main Visual Header Image with real-world luxury theme */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8 }}
-            className="relative aspect-video rounded-[2.5rem] overflow-hidden border border-secondary shadow-[0_20px_50px_rgba(0,0,0,0.04)]"
+            className={`relative aspect-video rounded-[2.5rem] overflow-hidden border shadow-[0_20px_50px_rgba(0,0,0,0.04)] ${isDark ? 'border-zinc-800' : 'border-secondary'}`}
           >
             <img 
               src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1000&auto=format&fit=crop&q=80"
@@ -157,7 +167,7 @@ export default function AboutUs() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white rounded-[2.5rem] border border-secondary shadow-[0_20px_50px_rgba(0,0,0,0.02)] p-8 sm:p-12 space-y-2"
+            className={`rounded-[2.5rem] border shadow-[0_20px_50px_rgba(0,0,0,0.02)] p-8 sm:p-12 space-y-2 ${cardClass}`}
           >
             {data && parseContent(data.content)}
           </motion.div>

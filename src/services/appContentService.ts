@@ -93,33 +93,38 @@ Please feel free to reach out directly using the phone or email listed above, or
 };
 
 export async function fetchAppContent(docId: string): Promise<AppContentDoc> {
+  const preset = DEFAULT_PRESETS[docId];
   const docRef = doc(db, 'app_content', docId);
+
   try {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return { id: docSnap.id, ...docSnap.data() } as AppContentDoc;
     }
 
-    // Document does not exist; automatically create it with default presets
-    const preset = DEFAULT_PRESETS[docId];
     if (preset) {
-      const newDocData = {
-        ...preset,
-        createdAt: serverTimestamp(),
-      };
-      await setDoc(docRef, newDocData);
+      try {
+        await setDoc(docRef, {
+          ...preset,
+          createdAt: serverTimestamp(),
+        });
+      } catch (writeError) {
+        console.warn(`Could not create app_content/${docId}; using local copy.`, writeError);
+      }
       return { id: docId, ...preset };
     }
 
     throw new Error(`Document preset not found for id: ${docId}`);
   } catch (error) {
     console.error(`Error loading app content for ${docId}:`, error);
-    handleFirestoreError(error, OperationType.GET, `app_content/${docId}`);
-    
-    // Return fallback preset if permission or other issues occur so the app never crashes
-    const fallback = DEFAULT_PRESETS[docId];
-    if (fallback) {
-      return { id: docId, ...fallback };
+    try {
+      handleFirestoreError(error, OperationType.GET, `app_content/${docId}`);
+    } catch {
+      // handleFirestoreError always throws; keep the page usable with local copy.
+    }
+
+    if (preset) {
+      return { id: docId, ...preset };
     }
     throw error;
   }
