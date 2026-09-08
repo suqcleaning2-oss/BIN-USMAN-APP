@@ -24,6 +24,9 @@ workflows:
         script: |
           find node_modules/@capacitor-firebase -name Package.swift -type f -exec perl -pi -e 's/\.upToNextMajor\(from: "12\.7\.0"\)/.exact("11.12.0")/g' {} +
           npx cap sync ios
+      - name: Configure iOS signing
+        script: |
+          xcode-project use-profiles
       - name: Set Build Number to 801
         script: |
           cd ios/App
