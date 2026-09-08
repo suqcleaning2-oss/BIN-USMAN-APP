@@ -410,32 +410,32 @@ export default function AdminDashboard() {
               </div>
             )}
             {listings.map((listing) => (
-              <div key={listing.id} className="bg-white rounded-[2.5rem] border border-secondary p-8 space-y-8 hover:shadow-2xl transition-all duration-1000 group">
+              <div key={listing.id} className="bg-white dark:bg-[#151515] rounded-[2.5rem] border border-secondary dark:border-zinc-800 p-8 space-y-8 hover:shadow-2xl transition-all duration-1000 group">
                 <div className="flex justify-between items-start gap-4">
                   <div className="space-y-2">
-                    <h4 className="text-xl font-semibold text-heading uppercase tracking-tight group-hover:text-primary-dark transition-colors">{listing.title}</h4>
-                    <p className="text-[10px] text-body/40 font-black uppercase tracking-widest flex items-center gap-2">
+                    <h4 className="text-xl font-semibold text-heading dark:text-white uppercase tracking-tight group-hover:text-primary-dark transition-colors">{listing.title}</h4>
+                    <p className="text-[10px] text-body/40 dark:text-zinc-400 font-black uppercase tracking-widest flex items-center gap-2">
                       <Home size={12} strokeWidth={2.5} className="text-primary-dark" />
                       {listing.location}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-semibold text-heading tracking-tighter">Rs. {listing.price.toLocaleString()}</p>
-                    <p className="text-[8px] text-body/30 font-black uppercase tracking-[0.2em] mt-1">PER NIGHT</p>
+                    <p className="text-xl font-semibold text-heading dark:text-white tracking-tighter">Rs. {listing.price.toLocaleString()}</p>
+                    <p className="text-[8px] text-body/30 dark:text-zinc-500 font-black uppercase tracking-[0.2em] mt-1">PER NIGHT</p>
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-8 border-t border-secondary">
+                <div className="flex gap-3 pt-8 border-t border-secondary dark:border-zinc-800">
                   <Link 
                     to={`/admin/listing/edit/${listing.id}`}
-                    className="flex-1 bg-background hover:bg-primary-dark hover:text-white py-3.5 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest text-heading transition-all border border-secondary shadow-sm"
+                    className="flex-1 bg-background hover:bg-primary-dark hover:text-white py-3.5 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest text-heading transition-all border border-secondary dark:border-zinc-800 shadow-sm"
                   >
                     <Edit size={16} strokeWidth={2} />
                     Edit
                   </Link>
                   <button 
                     onClick={() => handleDeleteListing(listing.id)}
-                    className="w-12 h-12 bg-white text-red-400 hover:bg-red-600 hover:text-white rounded-2xl transition-all border border-secondary shadow-sm flex items-center justify-center group/del"
+                    className="w-12 h-12 bg-white dark:bg-zinc-900 text-red-400 hover:bg-red-600 hover:text-white rounded-2xl transition-all border border-secondary dark:border-zinc-800 shadow-sm flex items-center justify-center group/del"
                   >
                     <Trash2 size={20} strokeWidth={1.5} />
                   </button>

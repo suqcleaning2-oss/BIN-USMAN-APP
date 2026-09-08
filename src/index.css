@@ -80,6 +80,8 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #E5C354;
   --color-primary-dark: #D4AF37;
@@ -115,7 +117,7 @@
   --body: #CBD5E1;
   --color-border-secondary: #27272A;
   --border-card: #1E293B;
-  --bg-card: #0F172A;
+  --bg-card: #151515;
   --bg-input: #1E293B;
 }
 

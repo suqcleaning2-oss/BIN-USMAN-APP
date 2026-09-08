@@ -16,9 +16,10 @@ interface ListingProps {
   locationName?: string;
   city: string;
   images: string[];
+  description?: string;
 }
 
-export default function ListingCard({ id, title, price, location, locationName, city, images }: ListingProps) {
+export default function ListingCard({ id, title, price, location, locationName, city, images, description }: ListingProps) {
   const { user } = useAuth();
   const [wishlistId, setWishlistId] = useState<string | null>(null);
   const [isToggling, setIsToggling] = useState(false);
@@ -65,7 +66,7 @@ export default function ListingCard({ id, title, price, location, locationName, 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -8 }}
-      className="overflow-hidden group cursor-pointer border border-[#E5E5E5] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-0 rounded-[2.5rem] shadow-subtle hover:shadow-xl transition-all duration-700 font-sans"
+      className="overflow-hidden group cursor-pointer border border-[#E5E5E5] dark:border-zinc-800 bg-white dark:bg-[#151515] p-0 rounded-[2.5rem] shadow-subtle hover:shadow-xl transition-all duration-700 font-sans"
     >
       <Link to={`/listing/${id}`}>
         <div className="relative aspect-[4/5] overflow-hidden rounded-t-[2.5rem]">
@@ -86,7 +87,7 @@ export default function ListingCard({ id, title, price, location, locationName, 
               className={`w-12 h-12 rounded-[1.25rem] backdrop-blur-xl border flex items-center justify-center transition-all duration-500 ${
                 wishlistId 
                 ? 'bg-red-500/10 border-red-500/20 text-red-500' 
-                : 'bg-white/70 dark:bg-black/50 border-white/30 dark:border-white/20 text-heading dark:text-white hover:bg-white/90 dark:hover:bg-black/70'
+                : 'bg-white/80 dark:bg-black/60 border-neutral-200/60 dark:border-white/20 text-neutral-900 dark:text-white hover:bg-white dark:hover:bg-black/80'
               }`}
             >
               <Heart 
@@ -98,27 +99,30 @@ export default function ListingCard({ id, title, price, location, locationName, 
             </motion.button>
           </div>
 
-          <div className="absolute bottom-6 left-6 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl px-5 py-2.5 rounded-2xl text-[10px] font-black text-heading dark:text-white shadow-xl uppercase tracking-widest border border-secondary/50 dark:border-zinc-700">
+          <div className="absolute bottom-6 left-6 bg-white/95 dark:bg-[#151515]/95 backdrop-blur-xl px-5 py-2.5 rounded-2xl text-[10px] font-black text-neutral-900 dark:text-white shadow-xl uppercase tracking-widest border border-neutral-200/80 dark:border-zinc-700">
             Rs. {price.toLocaleString()}
           </div>
         </div>
 
         <div className="p-8 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary-dark opacity-90">{displayCity}</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[#D4AF37] opacity-95">{displayCity}</span>
             <div className="flex items-center gap-2">
-              <MapPin size={12} strokeWidth={1.5} className="text-primary-dark/70" />
-              <span className="text-[9px] font-black text-body uppercase tracking-widest">{location}</span>
+              <MapPin size={12} strokeWidth={1.5} className="text-[#D4AF37] shrink-0" />
+              <span className="text-[9px] font-black text-neutral-600 dark:text-zinc-400 uppercase tracking-widest">{location}</span>
             </div>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-heading group-hover:text-primary-dark transition-colors line-clamp-1 uppercase tracking-tight">{title}</h3>
+              <h3 className="text-xl font-semibold text-neutral-900 dark:text-white group-hover:text-[#D4AF37] transition-colors line-clamp-1 uppercase tracking-tight">{title}</h3>
             </div>
             {locationName && (
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-dark italic">{locationName}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D4AF37] italic">{locationName}</p>
             )}
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-body/60 dark:text-zinc-400">Verified Property</p>
+            {description && (
+              <p className="text-xs text-neutral-600 dark:text-zinc-400 line-clamp-2 leading-relaxed font-normal">{description}</p>
+            )}
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-neutral-500 dark:text-zinc-400">Verified Property</p>
           </div>
         </div>
       </Link>

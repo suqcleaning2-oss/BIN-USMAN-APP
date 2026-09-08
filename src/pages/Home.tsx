@@ -149,7 +149,7 @@ export default function Home() {
       {Array.from({ length: 8 }).map((_, idx) => (
         <div 
           key={idx} 
-          className="overflow-hidden border border-[#E5E5E5] dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-subtle animate-pulse"
+          className="overflow-hidden border border-[#E5E5E5] dark:border-zinc-800 bg-white dark:bg-[#151515] rounded-[2.5rem] shadow-subtle animate-pulse"
         >
           <div className="relative aspect-[4/5] bg-neutral-200 dark:bg-zinc-800 rounded-t-[2.5rem]" />
           <div className="p-8 space-y-4">

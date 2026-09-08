@@ -251,26 +251,26 @@ export default function MyBookings() {
 
       <div className="space-y-6">
         {Array.from({ length: 2 }).map((_, idx) => (
-          <div key={idx} className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-secondary overflow-hidden animate-pulse">
+          <div key={idx} className="bg-white dark:bg-[#151515] rounded-[2rem] sm:rounded-[3rem] border border-secondary dark:border-zinc-800 overflow-hidden animate-pulse">
             <div className="p-5 sm:p-10 space-y-6 sm:space-y-10">
               <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6">
                 <div className="space-y-3 flex-1">
-                  <div className="h-7 w-2/3 bg-neutral-200 rounded-lg" />
-                  <div className="h-4 w-1/3 bg-neutral-200 rounded-md" />
-                  <div className="h-4 w-1/4 bg-neutral-200 rounded-md" />
+                  <div className="h-7 w-2/3 bg-neutral-200 dark:bg-zinc-800 rounded-lg" />
+                  <div className="h-4 w-1/3 bg-neutral-200 dark:bg-zinc-800 rounded-md" />
+                  <div className="h-4 w-1/4 bg-neutral-200 dark:bg-zinc-800 rounded-md" />
                 </div>
-                <div className="h-16 w-48 bg-neutral-100 rounded-2xl" />
+                <div className="h-16 w-48 bg-neutral-100 dark:bg-zinc-800 rounded-2xl" />
               </div>
-              <div className="h-px bg-neutral-200" />
+              <div className="h-px bg-neutral-200 dark:bg-zinc-800" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-neutral-200 rounded-xl" />
+                  <div className="w-12 h-12 bg-neutral-200 dark:bg-zinc-800 rounded-xl" />
                   <div className="space-y-2">
-                    <div className="h-3 w-16 bg-neutral-200 rounded-full" />
-                    <div className="h-5 w-24 bg-neutral-200 rounded-lg" />
+                    <div className="h-3 w-16 bg-neutral-200 dark:bg-zinc-800 rounded-full" />
+                    <div className="h-5 w-24 bg-neutral-200 dark:bg-zinc-800 rounded-lg" />
                   </div>
                 </div>
-                <div className="h-11 w-28 bg-neutral-200 rounded-xl" />
+                <div className="h-11 w-28 bg-neutral-200 dark:bg-zinc-800 rounded-xl" />
               </div>
             </div>
           </div>
@@ -284,7 +284,7 @@ export default function MyBookings() {
       <div className="flex items-center justify-between z-10">
         <button
           onClick={handleBack}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-secondary text-[10px] font-black uppercase tracking-[0.2em] text-heading hover:bg-neutral-50 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white dark:bg-zinc-900 border border-secondary dark:border-zinc-800 text-[10px] font-black uppercase tracking-[0.2em] text-heading dark:text-white hover:bg-neutral-50 dark:hover:bg-zinc-800 hover:text-primary-dark transition-all duration-300 shadow-sm active:scale-95 cursor-pointer group"
         >
           <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" strokeWidth={2.5} />
           <span>Back</span>
@@ -292,18 +292,18 @@ export default function MyBookings() {
         <RefreshButton onRefresh={handleRefresh} />
       </div>
       
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-secondary pb-10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-secondary dark:border-zinc-800 pb-10">
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl font-semibold tracking-tighter uppercase text-heading leading-none">My <span className="text-primary-dark italic font-normal">Bookings</span></h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-body/30 max-w-xs">Your past and upcoming stays.</p>
         </div>
-        <div className="bg-white px-6 py-2.5 rounded-full border border-secondary shadow-sm">
-          <span className="text-[10px] font-black uppercase tracking-widest text-heading">{bookings.length} BOOKINGS</span>
+        <div className="bg-white dark:bg-zinc-900 px-6 py-2.5 rounded-full border border-secondary dark:border-zinc-800 shadow-sm">
+          <span className="text-[10px] font-black uppercase tracking-widest text-heading dark:text-white">{bookings.length} BOOKINGS</span>
         </div>
       </div>
 
       <div className="bg-primary/5 border border-primary/10 rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 backdrop-blur-sm text-center sm:text-left">
-        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-primary-dark border border-secondary shadow-sm shrink-0">
+        <div className="w-12 h-12 rounded-2xl bg-white dark:bg-zinc-900 flex items-center justify-center text-primary-dark border border-secondary dark:border-zinc-800 shadow-sm shrink-0">
           <Clock size={24} strokeWidth={1.5} />
         </div>
         <div className="space-y-1 sm:space-y-2">
@@ -317,19 +317,19 @@ export default function MyBookings() {
           {bookings.map((booking) => {
             const status = getStatusInfo(booking.status);
             return (
-              <div key={booking.id} className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-secondary overflow-hidden hover:shadow-2xl transition-all duration-1000 group hover:-translate-y-1">
+              <div key={booking.id} className="bg-white dark:bg-[#151515] rounded-[2rem] sm:rounded-[3rem] border border-secondary dark:border-zinc-800 overflow-hidden hover:shadow-2xl transition-all duration-1000 group hover:-translate-y-1">
                 <div className="p-5 sm:p-10 space-y-6 sm:space-y-10">
                   <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6 sm:gap-10">
                       <div className="space-y-3 sm:space-y-4">
                         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                          <h3 className="text-2xl sm:text-3xl font-semibold text-heading uppercase tracking-tighter group-hover:text-primary-dark transition-colors">{booking.listingTitle}</h3>
+                          <h3 className="text-2xl sm:text-3xl font-semibold text-heading dark:text-white uppercase tracking-tighter group-hover:text-primary-dark transition-colors">{booking.listingTitle}</h3>
                           <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border shrink-0 ${status.className}`}>
                             {status.label}
                           </div>
                         </div>
                         <div className="flex flex-col gap-1.5">
                           {booking.location && (
-                            <p className="text-[10px] text-body/50 font-bold uppercase tracking-widest">{booking.location}</p>
+                            <p className="text-[10px] text-body/50 dark:text-zinc-400 font-bold uppercase tracking-widest">{booking.location}</p>
                           )}
                           {booking.locationName && (
                             <p className="text-[10px] text-primary-dark font-black uppercase tracking-widest">{booking.locationName}</p>
@@ -355,7 +355,7 @@ export default function MyBookings() {
                         <p className="text-[9px] font-black tracking-[0.3em] text-body/20 uppercase">Order ID: {booking.id.toUpperCase()}</p>
                       </div>
                     
-                    <div className="flex flex-row justify-around xl:justify-start items-center gap-4 sm:gap-10 bg-neutral-50 px-6 py-4 sm:py-6 rounded-[1.5rem] sm:rounded-[2rem] border border-secondary/50 w-full xl:w-auto">
+                    <div className="flex flex-row justify-around xl:justify-start items-center gap-4 sm:gap-10 bg-neutral-50 dark:bg-zinc-900/60 px-6 py-4 sm:py-6 rounded-[1.5rem] sm:rounded-[2rem] border border-secondary/50 dark:border-zinc-800 w-full xl:w-auto">
                       <div>
                         <p className="text-[9px] font-black uppercase tracking-widest text-body/40 mb-1.5">Check-In</p>
                         <p className="text-xs sm:text-sm font-bold text-heading">
