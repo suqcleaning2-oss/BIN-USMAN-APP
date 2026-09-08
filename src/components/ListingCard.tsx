@@ -86,7 +86,7 @@ export default function ListingCard({ id, title, price, location, locationName, 
               className={`w-12 h-12 rounded-[1.25rem] backdrop-blur-xl border flex items-center justify-center transition-all duration-500 ${
                 wishlistId 
                 ? 'bg-red-500/10 border-red-500/20 text-red-500' 
-                : 'bg-white/40 border-white/20 text-white hover:bg-white/60 hover:text-heading'
+                : 'bg-white/70 dark:bg-black/50 border-white/30 dark:border-white/20 text-heading dark:text-white hover:bg-white/90 dark:hover:bg-black/70'
               }`}
             >
               <Heart 
@@ -98,17 +98,17 @@ export default function ListingCard({ id, title, price, location, locationName, 
             </motion.button>
           </div>
 
-          <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-xl px-5 py-2.5 rounded-2xl text-[10px] font-black text-heading shadow-xl uppercase tracking-widest border border-secondary/50">
+          <div className="absolute bottom-6 left-6 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl px-5 py-2.5 rounded-2xl text-[10px] font-black text-heading dark:text-white shadow-xl uppercase tracking-widest border border-secondary/50 dark:border-zinc-700">
             Rs. {price.toLocaleString()}
           </div>
         </div>
 
         <div className="p-8 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary-dark opacity-60">{displayCity}</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary-dark opacity-90">{displayCity}</span>
             <div className="flex items-center gap-2">
-              <MapPin size={12} strokeWidth={1} className="text-secondary" />
-              <span className="text-[9px] font-black text-body/40 uppercase tracking-widest">{location}</span>
+              <MapPin size={12} strokeWidth={1.5} className="text-primary-dark/70" />
+              <span className="text-[9px] font-black text-body uppercase tracking-widest">{location}</span>
             </div>
           </div>
           <div className="space-y-1">
@@ -116,9 +116,9 @@ export default function ListingCard({ id, title, price, location, locationName, 
               <h3 className="text-xl font-semibold text-heading group-hover:text-primary-dark transition-colors line-clamp-1 uppercase tracking-tight">{title}</h3>
             </div>
             {locationName && (
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-dark/60 italic">{locationName}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-dark italic">{locationName}</p>
             )}
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-body/20">Verified Property</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-body/60 dark:text-zinc-400">Verified Property</p>
           </div>
         </div>
       </Link>

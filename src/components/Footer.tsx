@@ -10,7 +10,7 @@ export default function Footer() {
             <h3 className="text-lg font-semibold tracking-tighter text-heading uppercase">
               Bin <span className="text-primary-dark italic font-normal">Usman</span>
             </h3>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-body/30">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-body/70 dark:text-zinc-400">
               Best stays in Pakistan
             </p>
           </div>
@@ -18,29 +18,29 @@ export default function Footer() {
           <div className="flex flex-wrap justify-center gap-6 md:gap-8 items-center text-center">
             <Link 
               to="/about-us" 
-              className="text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
+              className="text-[10px] font-black uppercase tracking-widest text-body/80 dark:text-zinc-300 hover:text-primary-dark transition-all duration-300"
             >
               About Us
             </Link>
             <Link 
               to="/contact-us" 
-              className="text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
+              className="text-[10px] font-black uppercase tracking-widest text-body/80 dark:text-zinc-300 hover:text-primary-dark transition-all duration-300"
             >
               Contact Us
             </Link>
             <Link 
               to="/privacy-policy" 
-              className="text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
+              className="text-[10px] font-black uppercase tracking-widest text-body/80 dark:text-zinc-300 hover:text-primary-dark transition-all duration-300"
             >
               Privacy Policy
             </Link>
             <Link 
               to="/terms-conditions" 
-              className="text-[10px] font-black uppercase tracking-widest text-body/40 hover:text-primary-dark transition-all duration-300"
+              className="text-[10px] font-black uppercase tracking-widest text-body/80 dark:text-zinc-300 hover:text-primary-dark transition-all duration-300"
             >
               Terms & Conditions
             </Link>
-            <span className="text-[10px] font-black uppercase tracking-widest text-body/10 select-none">
+            <span className="text-[10px] font-black uppercase tracking-widest text-body/60 dark:text-zinc-500 select-none">
               &copy; {new Date().getFullYear()} BIN USMAN
             </span>
           </div>

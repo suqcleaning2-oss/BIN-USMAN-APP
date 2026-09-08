@@ -519,15 +519,15 @@ export default function ListingDetail() {
             </div>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-secondary p-8 md:p-10 space-y-8 relative overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.03)]">
+          <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-secondary dark:border-zinc-800 p-8 md:p-10 space-y-8 relative overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.03)]">
             <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 blur-3xl -z-10 rounded-full" />
             
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-body/40 text-[9px] uppercase font-black tracking-[0.25em] mb-2 uppercase">Price per night</p>
+                <p className="text-body text-[9px] uppercase font-black tracking-[0.25em] mb-2 uppercase">Price per night</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-semibold text-heading tracking-tighter">Rs. {listing.price.toLocaleString()}</span>
-                  <span className="text-body/40 text-xs font-bold uppercase tracking-widest">Included</span>
+                  <span className="text-body text-xs font-bold uppercase tracking-widest">Included</span>
                 </div>
               </div>
               <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary-dark border border-primary/10">
@@ -537,7 +537,7 @@ export default function ListingDetail() {
 
             {/* Calendar Integration */}
             <div className="space-y-6 pt-8 border-t border-secondary">
-              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-heading/40">
+              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-body">
                 <span>Selected Dates</span>
                 {range?.from && range?.to && !isNaN(range.from.getTime()) && !isNaN(range.to.getTime()) ? (
                   <span className="text-primary-dark">{format(range.from, 'MMM d')} — {format(range.to, 'MMM d')}</span>
@@ -563,7 +563,7 @@ export default function ListingDetail() {
 
             {/* Price Summary */}
             <div className="bg-background/50 p-6 rounded-3xl border border-secondary/50 space-y-4">
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-body/60">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-body">
                 <span>{listing.price.toLocaleString()} x {nights} {nights === 1 ? 'day' : 'days'}</span>
                 <span className="text-heading">Rs. {totalPrice.toLocaleString()}</span>
               </div>
@@ -582,13 +582,13 @@ export default function ListingDetail() {
             </button>
           </div>
 
-          <div className="p-6 bg-white rounded-3xl border border-secondary flex gap-5 items-start shadow-sm">
+          <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-secondary dark:border-zinc-800 flex gap-5 items-start shadow-sm">
              <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-primary-dark shrink-0">
                <InfoIcon size={20} />
              </div>
              <div className="space-y-1.5">
                <h4 className="text-[10px] font-black uppercase tracking-widest text-heading">Direct WhatsApp Booking</h4>
-               <p className="text-[11px] text-body/60 leading-relaxed font-medium tracking-wide">
+               <p className="text-[11px] text-body leading-relaxed font-medium tracking-wide">
                  No online payment required. Instantly connect with our team on WhatsApp to confirm your dates and reservation.
                </p>
              </div>

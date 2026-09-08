@@ -47,8 +47,10 @@ const AdminGuard = ({ children }: { children: React.ReactNode }) => {
 
 function AppRoutes() {
   return (
-    <div className="min-h-screen flex flex-col w-full overflow-y-auto -webkit-overflow-scrolling-touch touch-auto">
+    <div className="min-h-screen flex flex-col w-full">
       <Navbar />
+      {/* Spacer matching fixed header height (h-24 = 96px) so content is never hidden underneath */}
+      <div className="h-24 shrink-0" aria-hidden="true" />
       <main className="container mx-auto px-4 py-8 flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />

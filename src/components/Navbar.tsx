@@ -84,7 +84,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`border-b ${isDark ? 'border-zinc-800 bg-[#07090E]' : 'border-secondary bg-white'} sticky top-0 z-[60] transition-all duration-500 shadow-sm backdrop-blur-md`}>
+      <header className={`border-b ${isDark ? 'border-zinc-800/80 bg-[#07090E]/95' : 'border-secondary/80 bg-white/95'} fixed top-0 left-0 right-0 w-full z-40 transition-all duration-500 shadow-sm backdrop-blur-md`}>
         <div className="container mx-auto px-4 sm:px-6 h-24 flex items-center">
           <button 
             onClick={() => setIsDrawerOpen(true)}
@@ -167,7 +167,7 @@ export default function Navbar() {
              )}
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* Side Drawer Overlay */}
       <AnimatePresence>

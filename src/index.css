@@ -83,9 +83,9 @@
 @theme {
   --color-primary: #E5C354;
   --color-primary-dark: #D4AF37;
-  --color-secondary: #E5E5E5;
-  --color-heading: #1F1F1F;
-  --color-body: #4A4A4A;
+  --color-secondary: var(--color-border-secondary);
+  --color-heading: var(--heading);
+  --color-body: var(--body);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   --color-border-card: var(--border-card);
@@ -98,17 +98,22 @@
 
 :root {
   --background: #FFFFFF;
-  --foreground: #222222;
+  --foreground: #1E293B;
   --heading: #111111;
+  --body: #334155;
+  --color-border-secondary: #E5E5E5;
   --border-card: #E5E5E5;
   --bg-card: #FFFFFF;
   --bg-input: #FFFFFF;
 }
 
+:root.dark,
 .dark {
   --background: #07090E;
-  --foreground: #E2E8F0;
+  --foreground: #F8FAFC;
   --heading: #FFFFFF;
+  --body: #CBD5E1;
+  --color-border-secondary: #27272A;
   --border-card: #1E293B;
   --bg-card: #0F172A;
   --bg-input: #1E293B;
@@ -130,7 +135,7 @@
     -webkit-overflow-scrolling: touch;
     background-color: var(--background);
     color: var(--foreground);
-    @apply font-sans transition-colors duration-300 text-body;
+    @apply font-sans transition-colors duration-300;
   }
 
   #root {
@@ -171,13 +176,13 @@
 
 .secondary-button {
   min-height: 44px;
-  @apply bg-white hover:bg-secondary/20 text-heading border border-secondary font-medium py-3 px-8 rounded-xl transition-all duration-500 active:scale-95 uppercase text-xs tracking-wide select-none;
+  @apply bg-white dark:bg-zinc-900 hover:bg-secondary/20 dark:hover:bg-zinc-800 text-heading border border-secondary font-medium py-3 px-8 rounded-xl transition-all duration-500 active:scale-95 uppercase text-xs tracking-wide select-none;
 }
 
 .input-field {
   background-color: var(--bg-input);
   min-height: 44px;
-  @apply border border-secondary rounded-xl py-3 px-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all text-heading placeholder:text-body/30;
+  @apply border border-secondary rounded-xl py-3 px-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all text-heading placeholder:text-body/60 dark:placeholder:text-zinc-400;
 }
 
 /* Touch support & smooth scrolling */

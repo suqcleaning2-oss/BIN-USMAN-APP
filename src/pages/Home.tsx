@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ListingCard from '../components/ListingCard';
-import { Search, Loader2, MapPin, Building2 } from 'lucide-react';
+import { Search, Loader2, MapPin, Building2, ChevronDown } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
@@ -26,6 +26,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [selectedCity, setSelectedCity] = usePersistentState('binusman_home_selected_city', 'All');
   const [searchTerm, setSearchTerm] = usePersistentState('binusman_home_search_term', '');
+  const [sortBy, setSortBy] = usePersistentState('binusman_home_sort_by', 'price-asc');
   const [displayLimit, setDisplayLimit] = useState(8); // Render only 8 initially for ultra-fast startup and scrolling
 
   useScrollRestoration('/', !loading);
@@ -64,12 +65,22 @@ export default function Home() {
     await fetchListings();
   };
 
+  // Helper to extract clean numeric price for accurate sorting (e.g. 3000, 5000, 7500, 10000, 15000)
+  const getNumericPrice = (l: Listing): number => {
+    if (typeof l.price === 'number' && !isNaN(l.price)) return l.price;
+    if (typeof l.price === 'string') {
+      const num = parseFloat(String(l.price).replace(/[^0-9.]/g, ''));
+      if (!isNaN(num)) return num;
+    }
+    return 0;
+  };
+
   // Dynamically extract all unique cities from existing Firestore listings + defaults
   const availableCities = React.useMemo(() => {
     return getUniqueCitiesFromListings(listings, true);
   }, [listings]);
 
-  // Memoize listings filtering to eliminate redundant computations on rebuilds / typing
+  // Filter listings by City and Search Term
   const filteredListings = React.useMemo(() => {
     return listings.filter(l => {
       // Robust City Filter (Case-insensitive & whitespace trimmed, matching Firestore data)
@@ -91,13 +102,25 @@ export default function Home() {
     });
   }, [listings, selectedCity, searchTerm]);
 
-  // Reset rendering limit when filters change to preserve scrolling memory and speed
+  // Sort filtered listings based on chosen sort option (Price: Low to High by default)
+  const sortedListings = React.useMemo(() => {
+    const list = [...filteredListings];
+    if (sortBy === 'price-asc') {
+      return list.sort((a, b) => getNumericPrice(a) - getNumericPrice(b));
+    }
+    if (sortBy === 'price-desc') {
+      return list.sort((a, b) => getNumericPrice(b) - getNumericPrice(a));
+    }
+    return list;
+  }, [filteredListings, sortBy]);
+
+  // Reset rendering limit when filters or sort option change
   useEffect(() => {
     setDisplayLimit(8);
-  }, [selectedCity, searchTerm]);
+  }, [selectedCity, searchTerm, sortBy]);
 
-  const listingsToRender = filteredListings.slice(0, displayLimit);
-  const hasMore = filteredListings.length > displayLimit;
+  const listingsToRender = sortedListings.slice(0, displayLimit);
+  const hasMore = sortedListings.length > displayLimit;
 
   // Set up high-performance infinite scroll observer for rendering
   useEffect(() => {
@@ -106,7 +129,7 @@ export default function Home() {
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
         // Increment limit dynamically in the background
-        setDisplayLimit((prev) => Math.min(prev + 8, filteredListings.length));
+        setDisplayLimit((prev) => Math.min(prev + 8, sortedListings.length));
       }
     }, { threshold: 0.1, rootMargin: '200px' }); // Trigger ahead by 200px to ensure seamless scroll transition
 
@@ -118,7 +141,7 @@ export default function Home() {
     return () => {
       observer.disconnect();
     };
-  }, [hasMore, filteredListings.length]);
+  }, [hasMore, sortedListings.length]);
 
   // Premium skeleton loader matching ListingCard dimensions
   const renderSkeletons = () => (
@@ -126,17 +149,17 @@ export default function Home() {
       {Array.from({ length: 8 }).map((_, idx) => (
         <div 
           key={idx} 
-          className="overflow-hidden border border-[#E5E5E5] bg-white rounded-[2.5rem] shadow-subtle animate-pulse"
+          className="overflow-hidden border border-[#E5E5E5] dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-subtle animate-pulse"
         >
-          <div className="relative aspect-[4/5] bg-neutral-200 rounded-t-[2.5rem]" />
+          <div className="relative aspect-[4/5] bg-neutral-200 dark:bg-zinc-800 rounded-t-[2.5rem]" />
           <div className="p-8 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="h-3 w-16 bg-neutral-200 rounded-full" />
-              <div className="h-3 w-20 bg-neutral-200 rounded-full" />
+              <div className="h-3 w-16 bg-neutral-200 dark:bg-zinc-800 rounded-full" />
+              <div className="h-3 w-20 bg-neutral-200 dark:bg-zinc-800 rounded-full" />
             </div>
             <div className="space-y-2">
-              <div className="h-5 w-3/4 bg-neutral-200 rounded-lg" />
-              <div className="h-3.5 w-1/2 bg-neutral-200 rounded-md" />
+              <div className="h-5 w-3/4 bg-neutral-200 dark:bg-zinc-800 rounded-lg" />
+              <div className="h-3.5 w-1/2 bg-neutral-200 dark:bg-zinc-800 rounded-md" />
             </div>
           </div>
         </div>
@@ -146,7 +169,7 @@ export default function Home() {
 
   return (
     <div className="space-y-8 relative">
-      <div className="absolute top-0 right-0 z-50">
+      <div className="absolute top-0 right-0 z-20">
         <RefreshButton onRefresh={handleRefresh} />
       </div>
 
@@ -158,7 +181,7 @@ export default function Home() {
         
         <div className="space-y-6 relative z-10 w-full max-w-4xl px-2 md:px-6">
           <div className="text-center space-y-2">
-            <span className="inline-block text-[11px] font-black tracking-[0.35em] text-primary-dark uppercase bg-primary-dark/5 px-4 py-1.5 rounded-full">
+            <span className="inline-block text-[11px] font-black tracking-[0.35em] text-primary-dark uppercase bg-primary-dark/10 px-4 py-1.5 rounded-full">
               BIN USMAN
             </span>
           </div>
@@ -189,16 +212,16 @@ export default function Home() {
               FIND THE BEST <span style={{ color: '#D4AF37' }}>HOTELS AND APARTMENTS</span> WITH US
             </span>
           </h1>
-          <p className="text-body/80 max-w-md mx-auto font-medium text-sm tracking-wide leading-relaxed">
+          <p className="text-body font-medium text-sm md:text-base max-w-md mx-auto tracking-wide leading-relaxed">
             Find the best apartments in Pakistan's top locations.
           </p>
           
           <div className="w-full max-w-md relative group mx-auto pt-4">
-            <Search className="absolute left-5 top-[60%] -translate-y-1/2 text-body/30 group-focus-within:text-primary-dark transition-colors" size={18} />
+            <Search className={`absolute left-5 top-[60%] -translate-y-1/2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'} group-focus-within:text-primary-dark transition-colors`} size={18} />
             <input 
               type="text"
               placeholder="Search by city or area..."
-              className={`w-full ${isDark ? 'bg-zinc-950 border-zinc-800 text-white focus:ring-primary-dark/20' : 'bg-white border-secondary text-heading focus:ring-primary/10'} border rounded-2xl py-4 pl-14 pr-4 focus:outline-none focus:border-primary-dark focus:ring-4 transition-all font-medium text-sm`}
+              className={`w-full ${isDark ? 'bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-400 focus:ring-primary-dark/20' : 'bg-white border-secondary text-heading placeholder:text-zinc-500 focus:ring-primary/10'} border rounded-2xl py-4 pl-14 pr-4 focus:outline-none focus:border-primary-dark focus:ring-4 transition-all font-medium text-sm`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -213,7 +236,7 @@ export default function Home() {
             <div className="w-1 h-6 bg-primary-dark rounded-full" />
             <h2 className="text-sm font-black uppercase tracking-[0.2em] text-heading">Top Cities</h2>
           </div>
-          <span className="text-[10px] font-medium uppercase tracking-widest text-body/40">{listings.length} Places Available</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-body">{listings.length} Places Available</span>
         </div>
         
         <div className="flex gap-3 overflow-x-auto touch-scroll-x pb-4 scrollbar-hide -mx-4 px-4 snap-x">
@@ -228,8 +251,8 @@ export default function Home() {
                   ${isSelected 
                     ? 'bg-primary-dark text-neutral-900 font-bold shadow-xl shadow-primary-dark/10 ring-4 ring-primary-dark/5' 
                     : isDark
-                      ? 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-primary-dark/30 hover:text-white'
-                      : 'bg-white text-body/40 border border-secondary hover:border-primary-dark/30 hover:text-heading'}
+                      ? 'bg-zinc-900 text-zinc-300 border border-zinc-800 hover:border-primary-dark/30 hover:text-white'
+                      : 'bg-white text-zinc-700 border border-secondary hover:border-primary-dark/30 hover:text-heading'}
                 `}
               >
                 {city}
@@ -241,9 +264,40 @@ export default function Home() {
 
       {/* Featured Listings */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-black tracking-tight uppercase text-heading">Find an <span className="text-primary italic">Apartment</span></h2>
-          <span className="text-body font-bold text-xs uppercase tracking-widest">{filteredListings.length} results found</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black tracking-tight uppercase text-heading">
+              Find an <span className="text-primary italic">Apartment</span>
+            </h2>
+            <span className="text-body font-bold text-xs uppercase tracking-widest">
+              {sortedListings.length} results found
+            </span>
+          </div>
+
+          {/* Clean Minimal Sort By Dropdown */}
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <label htmlFor="property-sort-select" className="text-[11px] font-black uppercase tracking-wider text-body whitespace-nowrap">
+              Sort by:
+            </label>
+            <div className="relative">
+              <select
+                id="property-sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className={`text-xs font-bold uppercase tracking-wider py-2.5 pl-3.5 pr-8 rounded-xl border transition-all cursor-pointer appearance-none ${
+                  isDark 
+                    ? 'bg-zinc-900 border-zinc-700 text-white focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30' 
+                    : 'bg-white border-secondary text-heading focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30'
+                }`}
+                aria-label="Sort listings"
+              >
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="featured">Featured / Default</option>
+              </select>
+              <ChevronDown size={14} className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`} />
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -264,7 +318,7 @@ export default function Home() {
             )}
           </div>
         ) : (
-          <div className="text-center py-20 glass-card border-dashed bg-white/40">
+          <div className={`text-center py-20 rounded-[2.5rem] border border-dashed ${isDark ? 'bg-zinc-900/40 border-zinc-800' : 'bg-white/60 border-secondary'}`}>
             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary">
               <Search size={32} />
             </div>
