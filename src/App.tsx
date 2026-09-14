@@ -47,11 +47,11 @@ const AdminGuard = ({ children }: { children: React.ReactNode }) => {
 
 function AppRoutes() {
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-full overflow-x-hidden overflow-y-auto -webkit-overflow-scrolling-touch touch-auto bg-background text-foreground">
+    <div className="min-h-screen flex flex-col w-full">
       <Navbar />
-      {/* Spacer matching fixed header height (h-24 = 96px) so content is never hidden underneath */}
-      <div className="h-24 shrink-0 native-header-spacer" aria-hidden="true" />
-      <main className="container mx-auto px-4 py-8 flex-grow w-full max-w-full overflow-x-hidden">
+      {/* Spacer matching fixed dynamic island pill header height + padding */}
+      <div className="h-[74px] sm:h-[80px] shrink-0" aria-hidden="true" />
+      <main className="container mx-auto px-4 py-8 flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -85,25 +85,20 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isAppleMobile =
-    typeof navigator !== 'undefined' &&
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setTimerFinished(true);
-    }, isAppleMobile ? 600 : 2000);
+    }, 2000); // 2s brand splash display
     return () => clearTimeout(timer);
-  }, [isAppleMobile]);
+  }, []);
 
   // Safety fallback so splash screen never gets stuck indefinitely
   useEffect(() => {
     const fallbackTimer = setTimeout(() => {
       setShowSplash(false);
-    }, isAppleMobile ? 1400 : 3500);
+    }, 3500);
     return () => clearTimeout(fallbackTimer);
-  }, [isAppleMobile]);
+  }, []);
 
   useEffect(() => {
     if (timerFinished && !authLoading) {

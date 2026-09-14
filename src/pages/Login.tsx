@@ -1,13 +1,58 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { signInWithEmailAndPassword, getRedirectResult, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { Capacitor } from '@capacitor/core';
 import { auth, db } from '../lib/firebase';
-import { signInWithGoogle } from '../lib/google-auth';
-import { ensureUserProfile } from '../lib/user-profile';
 import { toast } from 'sonner';
 import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { getHighResGooglePhoto } from '../lib/avatar-utils';
+
+const configureGoogleProvider = () => {
+  const provider = new GoogleAuthProvider();
+  // 1. Explicitly request profile and email scopes to ensure photo and personal info are fetched
+  provider.addScope('profile');
+  provider.addScope('email');
+  provider.setCustomParameters({
+    prompt: 'select_account',
+  });
+  return provider;
+};
+
+const syncGoogleUserToFirestore = async (user: any) => {
+  const docRef = doc(db, 'users', user.uid);
+  const docSnap = await getDoc(docRef);
+  const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
+  
+  // 2. Convert Google thumbnail photo (=s96-c) to HD (=s400-c)
+  const highResPhoto = getHighResGooglePhoto(user.photoURL);
+
+  if (!docSnap.exists()) {
+    await setDoc(docRef, {
+      id: user.uid,
+      uid: user.uid,
+      fullName: user.displayName || 'Google User',
+      name: user.displayName || 'Google User',
+      email: user.email || '',
+      phone: user.phoneNumber || '',
+      phoneNumber: user.phoneNumber || '',
+      photoURL: highResPhoto,
+      photo: highResPhoto,
+      role: isAdminEmail ? 'admin' : 'user',
+      blocked: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  } else {
+    // If user document already exists, merge high-res photo so it is never blank
+    await setDoc(docRef, {
+      photoURL: highResPhoto,
+      photo: highResPhoto,
+      fullName: docSnap.data()?.fullName || user.displayName || 'Google User',
+      email: user.email || docSnap.data()?.email || '',
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }
+};
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -105,17 +150,15 @@ export default function Login() {
     return () => clearInterval(timer);
   }, [countdownSeconds, lockoutActive]);
 
-  // Handle redirect result if user returning from signInWithRedirect (web only)
+  // Handle redirect result if user returning from signInWithRedirect
   React.useEffect(() => {
-    if (Capacitor.isNativePlatform()) return;
-
     const handleRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
           const user = result.user;
-          await ensureUserProfile(user);
-
+          // Sync user with photoURL to Firestore
+          await syncGoogleUserToFirestore(user);
           toast.success('Welcome back!');
           redirectAfterAuth();
         }
@@ -164,7 +207,24 @@ export default function Login() {
         console.error("Error resetting login attempts:", err);
       }
 
-      await ensureUserProfile(user);
+      // Sync user to Firestore if not exists
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
+        await setDoc(docRef, {
+          id: user.uid,
+          uid: user.uid,
+          fullName: user.displayName || email.split('@')[0],
+          name: user.displayName || email.split('@')[0],
+          email: user.email || '',
+          phone: '',
+          phoneNumber: '',
+          role: isAdminEmail ? 'admin' : 'user',
+          blocked: false,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       toast.success('Welcome back!');
       redirectAfterAuth();
@@ -222,8 +282,6 @@ export default function Login() {
         toast.error('Domain not authorized. Please add this URL to Firebase authorized domains.');
       } else if (error.code === 'auth/too-many-requests') {
         toast.error('Too many requests. Login has been temporarily blocked by security policy.');
-      } else if (error.code === 'permission-denied') {
-        toast.error('Signed in, but account data could not be loaded. Please try again.');
       } else {
         toast.error(error.message || 'Failed to sign in. Please try again.');
       }
@@ -260,20 +318,26 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = async () => {
+    const provider = configureGoogleProvider();
     try {
-      const result = await signInWithGoogle();
-      await ensureUserProfile(result.user);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Sync user profile including high-res photo to Firestore
+      await syncGoogleUserToFirestore(user);
 
       toast.success('Welcome back!');
       redirectAfterAuth();
     } catch (error: any) {
-      if (
-        error.code === 'auth/popup-closed-by-user' ||
-        error.code === 'auth/cancelled-popup-request' ||
-        error.message?.includes('canceled') ||
-        error.message?.includes('cancelled')
-      ) {
-        console.log("Google sign-in cancelled.");
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        console.log("Popup closed or cancelled, retrying with redirect...");
+        toast.info('Popup closed, redirecting to Google...');
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirectError: any) {
+          console.error("Redirect sign-in error:", redirectError);
+          toast.error('Failed to initiate redirect sign-in');
+        }
         return;
       }
       console.error(error);
@@ -289,8 +353,8 @@ export default function Login() {
 
   if (showForgotPassword) {
     return (
-      <div className="max-w-md w-full mx-auto py-8 sm:py-24 px-1 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-        <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-secondary shadow-2xl p-6 sm:p-12 space-y-8 sm:space-y-10">
+      <div className="max-w-md mx-auto py-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="bg-white rounded-[3rem] border border-secondary shadow-2xl p-12 space-y-10">
           <button 
             onClick={() => setShowForgotPassword(false)}
             className="flex items-center gap-2 text-[10px] text-body/40 font-black tracking-widest hover:text-primary-dark transition-colors uppercase border-b border-transparent hover:border-primary-dark/20 pb-0.5"
@@ -337,8 +401,8 @@ export default function Login() {
   }
 
   return (
-    <div className="max-w-md w-full mx-auto py-8 sm:py-24 px-1 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-secondary shadow-2xl p-6 sm:p-12 space-y-8 sm:space-y-10">
+    <div className="max-w-md mx-auto py-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+      <div className="bg-white rounded-[3rem] border border-secondary shadow-2xl p-12 space-y-10">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary-dark border border-primary/20 mx-auto">
             <Lock size={32} strokeWidth={1} />
@@ -374,9 +438,6 @@ export default function Login() {
               <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-body/20 group-focus-within:text-primary-dark transition-colors" size={18} />
               <input 
                 type="email"
-                inputMode="email"
-                autoComplete="email"
-                enterKeyHint="next"
                 placeholder="Email"
                 className="w-full bg-background/30 border border-secondary rounded-2xl pl-14 pr-6 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
                 required
@@ -388,8 +449,6 @@ export default function Login() {
               <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-body/20 group-focus-within:text-primary-dark transition-colors" size={18} />
               <input 
                 type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                enterKeyHint="done"
                 placeholder="Password"
                 className="w-full bg-background/30 border border-secondary rounded-2xl pl-14 pr-14 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
                 required

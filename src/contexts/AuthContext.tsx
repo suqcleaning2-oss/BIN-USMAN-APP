@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { getHighResGooglePhoto } from '../lib/avatar-utils';
 
 interface AuthContextType {
   user: User | null;
@@ -10,12 +11,14 @@ interface AuthContextType {
   isAdmin: boolean;
 }
 
-interface UserProfile {
+export interface UserProfile {
   id: string;
   fullName: string;
   email: string;
   phone: string;
   role: 'user' | 'admin';
+  photoURL?: string | null;
+  photo?: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -79,31 +82,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (firebaseUser) {
-        try {
-          await firebaseUser.getIdToken();
-        } catch (error) {
-          console.warn("[Auth] Could not refresh ID token before profile listen:", error);
-        }
-
-        const fallbackProfile: UserProfile = {
-          id: firebaseUser.uid,
-          fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          email: firebaseUser.email || '',
-          phone: '',
-          role: firebaseUser.email === 'suqcleaning2@gmail.com' || firebaseUser.email === 'mqaisar11550@gmail.com' ? 'admin' : 'user'
-        };
-
+        // Listen to profile changes in Firestore
         const profileRef = doc(db, 'users', firebaseUser.uid);
         unsubscribeProfile = onSnapshot(profileRef, (docSnap) => {
+          const rawPhoto = firebaseUser.photoURL || null;
           if (docSnap.exists()) {
-            setProfile(docSnap.data() as UserProfile);
+            const data = docSnap.data() as UserProfile;
+            const effectivePhoto = getHighResGooglePhoto(data.photoURL || data.photo || rawPhoto);
+            setProfile({
+              ...data,
+              photoURL: effectivePhoto,
+              photo: effectivePhoto,
+            });
           } else {
-            setProfile(fallbackProfile);
+            // Fallback for new users or if doc doesn't exist yet
+            const isAdminEmail = firebaseUser.email === 'suqcleaning2@gmail.com' || firebaseUser.email === 'mqaisar11550@gmail.com';
+            const effectivePhoto = getHighResGooglePhoto(rawPhoto);
+            setProfile({
+              id: firebaseUser.uid,
+              fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+              email: firebaseUser.email || '',
+              phone: '',
+              role: isAdminEmail ? 'admin' : 'user',
+              photoURL: effectivePhoto,
+              photo: effectivePhoto,
+            });
           }
           setLoading(false);
         }, (error) => {
           console.error("Error listening to profile:", error);
-          setProfile(fallbackProfile);
           setLoading(false);
         });
       } else {

@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme, ThemeMode } from '../contexts/ThemeContext';
+import { getHighResGooglePhoto } from '../lib/avatar-utils';
 
 export default function Navbar() {
   const { user, isAdmin, profile } = useAuth();
@@ -40,8 +41,11 @@ export default function Navbar() {
   const isDark = theme === 'dark';
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(true);
+  const [navPhotoError, setNavPhotoError] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const userPhoto = getHighResGooglePhoto(profile?.photoURL || profile?.photo || user?.photoURL);
 
   // Close drawer on route change
   useEffect(() => {
@@ -84,87 +88,118 @@ export default function Navbar() {
 
   return (
     <>
-      <header className={`border-b ${isDark ? 'border-zinc-800/80 bg-[#07090E]/95' : 'border-secondary/80 bg-white/95'} fixed top-0 left-0 right-0 w-full z-40 transition-all duration-500 shadow-sm backdrop-blur-md`}>
-        <div className="container mx-auto px-4 sm:px-6 h-24 flex items-center min-w-0 overflow-hidden">
-          <button 
-            onClick={() => setIsDrawerOpen(true)}
-            className={`w-12 h-12 flex items-center justify-center rounded-2xl ${isDark ? 'bg-white/5 border border-white/10 text-white hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37]' : 'bg-secondary/25 border border-secondary text-heading hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37]'} transition-all duration-500 active:scale-90 cursor-pointer shadow-inner shrink-0`}
-            aria-label="Open Menu"
-          >
-            <Menu size={24} strokeWidth={1.5} />
-          </button>
+      {/* Floating Dynamic Island Style Pill Header */}
+      <header className="fixed top-0 left-0 right-0 w-full z-40 transition-all duration-300 pointer-events-none pt-2 sm:pt-3 px-2.5 sm:px-6">
+        <div className="container mx-auto flex justify-center max-w-7xl">
+          <div className={`pointer-events-auto w-full flex items-center justify-between px-2.5 sm:px-4 h-[58px] rounded-[25px] border transition-all duration-300 shadow-2xl backdrop-blur-xl ${
+            isDark 
+              ? "bg-[#0A0C10]/85 border-white/10 shadow-black/80" 
+              : "bg-white/85 border-secondary shadow-neutral-900/10"
+          }`}>
+            
+            {/* Left Section: Hamburger + Brand (Logo & Reduced Text) */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <button 
+                onClick={() => setIsDrawerOpen(true)}
+                className={`w-9 h-9 flex items-center justify-center rounded-full ${
+                  isDark 
+                    ? "bg-white/10 border border-white/10 text-white hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37]" 
+                    : "bg-secondary/30 border border-secondary text-heading hover:bg-[#D4AF37] hover:text-[#111111] hover:border-[#D4AF37]"
+                } transition-all duration-300 active:scale-90 cursor-pointer shrink-0`}
+                aria-label="Open Menu"
+              >
+                <Menu size={18} strokeWidth={2} />
+              </button>
 
-          <Link to="/" className="flex items-center gap-2 sm:gap-3.5 group select-none ml-2 sm:ml-4 min-w-0">
-            {/* Pure, Streamlined Floating Circular Logo Emblem */}
-            <div className="w-[44px] h-[44px] sm:w-[52px] sm:h-[52px] rounded-full overflow-hidden shrink-0 flex items-center justify-center transition-all duration-700 group-hover:scale-110 active:scale-95 shadow-md bg-transparent relative">
-              <img 
-                src={brandLogo} 
-                alt="Bin Usman Logo" 
-                className="w-full h-full object-cover select-none scale-[1.42] transition-transform duration-700 group-hover:scale-[1.50]"
-                referrerPolicy="no-referrer"
-              />
+              <Link to="/" className="flex items-center gap-2 group select-none">
+                {/* Compact 32-35px Floating Logo */}
+                <div className="w-[32px] h-[32px] rounded-full overflow-hidden shrink-0 flex items-center justify-center transition-all duration-500 group-hover:scale-105 active:scale-95 bg-transparent relative">
+                  <img 
+                    src={brandLogo} 
+                    alt="Bin Usman Logo" 
+                    className="w-full h-full object-cover select-none scale-[1.40] transition-transform duration-500 group-hover:scale-[1.48]" 
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+
+                {/* Reduced Serif Text for Dynamic Island Scale */}
+                <span 
+                  style={{
+                    fontFamily: '"Cinzel", "Playfair Display", Georgia, serif',
+                    textShadow: isDark ? "0px 1px 2px rgba(0, 0, 0, 0.7)" : "none",
+                    letterSpacing: "0.04em"
+                  }}
+                  className={`text-[13px] sm:text-base md:text-lg font-extrabold uppercase leading-none flex items-center bg-gradient-to-b ${
+                    isDark ? "from-[#FFFDF0] via-[#D4AF37] to-[#95731C]" : "from-[#1a1a1a] via-[#D4AF37] to-[#111111]"
+                  } bg-clip-text text-transparent group-hover:text-[#D4AF37] transition-all duration-300`}
+                >
+                  BIN&nbsp;USMAN
+                </span>
+              </Link>
             </div>
 
-            {/* Premium Gold Embossed Serif Brand Text */}
-            <span 
-              style={{
-                fontFamily: '"Cinzel", "Playfair Display", Georgia, serif',
-                textShadow: isDark ? '0px 1.5px 3px rgba(0, 0, 0, 0.6), 0px 0px 1px rgba(255, 255, 255, 0.2)' : 'none',
-                letterSpacing: '0.04em'
-              }}
-              className={`text-[15px] sm:text-2xl md:text-3xl font-extrabold uppercase leading-none truncate flex items-center bg-gradient-to-b ${isDark ? 'from-[#FFFDF0] via-[#D4AF37] to-[#95731C]' : 'from-[#1a1a1a] via-[#D4AF37] to-[#111111]'} bg-clip-text text-transparent group-hover:text-[#D4AF37] transition-all duration-500`}
-            >
-              BIN&nbsp;USMAN
-            </span>
-          </Link>
+            {/* Right Section: Theme Toggle, Building Button, Profile Avatar */}
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className={`w-9 h-9 flex items-center justify-center rounded-full ${
+                  isDark 
+                    ? "bg-white/10 border border-white/10 text-[#D4AF37] hover:bg-white/15" 
+                    : "bg-secondary/30 border border-secondary text-heading hover:bg-secondary/50"
+                } transition-all duration-300 active:scale-90`}
+                title={`Current theme: ${themeMode === "system" ? `System (${theme})` : themeMode}. Click to switch.`}
+                aria-label="Toggle Theme"
+              >
+                {theme === "dark" ? (
+                  <Sun size={17} strokeWidth={2} className="text-[#D4AF37]" />
+                ) : (
+                  <Moon size={17} strokeWidth={2} className="text-heading" />
+                )}
+              </button>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
-             {/* Fast Header Theme Toggle accessible on all screen sizes */}
-             <button
-               onClick={toggleTheme}
-               className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-2xl ${isDark ? 'bg-white/5 border border-white/10 text-[#D4AF37] hover:bg-white/10' : 'bg-secondary/25 border border-secondary text-heading hover:bg-secondary/40'} transition-all duration-300 active:scale-90`}
-               title={`Current theme: ${themeMode === 'system' ? `System (${theme})` : themeMode}. Click to switch.`}
-               aria-label="Toggle Theme"
-             >
-               {theme === 'dark' ? (
-                 <Sun size={18} strokeWidth={2} className="text-[#D4AF37]" />
-               ) : (
-                 <Moon size={18} strokeWidth={2} className="text-heading" />
-               )}
-             </button>
+              {/* Building Icon (List Your Property) in Gold Accent */}
+              <Link 
+                to="/list-property" 
+                className="w-9 h-9 sm:w-auto sm:px-3.5 sm:py-2 rounded-full bg-[#D4AF37] text-[#111111] hover:bg-neutral-900 hover:text-[#D4AF37] font-black text-[10px] uppercase tracking-wider transition-all duration-300 shadow-md active:scale-95 inline-flex items-center justify-center gap-1.5 shrink-0"
+                title="List Your Property"
+                aria-label="List Your Property"
+              >
+                <Building size={16} strokeWidth={2.2} />
+                <span className="hidden md:inline font-bold">List Property</span>
+              </Link>
 
-             <Link 
-               to="/list-property" 
-               className="px-3.5 py-2.5 sm:px-5 sm:py-2.5 rounded-full bg-[#D4AF37] text-[#111111] hover:bg-neutral-900 hover:text-[#D4AF37] font-black text-[10px] uppercase tracking-widest transition-all duration-300 shadow-md active:scale-95 inline-flex items-center gap-2"
-               aria-label="List Your Property"
-             >
-               <Building size={12} strokeWidth={2.5} />
-               <span className="hidden min-[520px]:inline">List Your Property</span>
-             </Link>
+              {/* Profile Avatar / Login Icon */}
+              {user ? (
+                <Link 
+                  to="/settings"
+                  className="w-9 h-9 rounded-full bg-[#D4AF37] text-[#111111] flex items-center justify-center text-[11px] font-black uppercase shrink-0 overflow-hidden ring-1 ring-[#D4AF37]/50 shadow-md transition-transform active:scale-95"
+                  aria-label="Account Settings"
+                >
+                  {userPhoto && !navPhotoError ? (
+                    <img 
+                      src={userPhoto} 
+                      alt="Profile" 
+                      onError={() => setNavPhotoError(true)} 
+                      className="w-full h-full object-cover rounded-full" 
+                      referrerPolicy="no-referrer" 
+                    />
+                  ) : (
+                    profile?.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "S"
+                  )}
+                </Link>
+              ) : (
+                <Link 
+                  to="/login"
+                  className="w-9 h-9 rounded-full bg-[#D4AF37] text-[#111111] flex items-center justify-center text-[11px] font-black uppercase shrink-0 shadow-md transition-transform active:scale-95"
+                  title="Login"
+                  aria-label="Login"
+                >
+                  <LogIn size={15} strokeWidth={2.5} />
+                </Link>
+              )}
+            </div>
 
-             {user ? (
-               <Link 
-                 to="/settings"
-                 className={`flex items-center gap-2 sm:gap-3 p-1 sm:px-4 sm:py-2 ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-secondary/25 hover:bg-secondary/40 border-secondary'} rounded-full border transition-colors`}
-                 aria-label="Account Settings"
-               >
-                 <div className="w-8 h-8 rounded-full bg-[#D4AF37] text-[#111111] flex items-center justify-center text-[10px] font-black uppercase shrink-0">
-                   {profile?.fullName?.[0] || user.email?.[0]}
-                 </div>
-                 <div className="hidden md:flex flex-col">
-                   <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-heading'}`}>{profile?.fullName || 'Guest'}</span>
-                   <span className={`text-[8px] uppercase tracking-widest leading-none ${isDark ? 'text-white/60' : 'text-body/60'}`}>Account</span>
-                 </div>
-               </Link>
-             ) : (
-               <Link 
-                 to="/login"
-                 className={`hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full border ${isDark ? 'border-zinc-800 text-zinc-300 hover:border-[#D4AF37] hover:text-[#D4AF37]' : 'border-secondary text-heading hover:border-[#D4AF37] hover:text-[#D4AF37]'} text-[10px] font-black uppercase tracking-widest transition-all`}
-               >
-                 <LogIn size={12} strokeWidth={2} />
-                 <span>Login</span>
-               </Link>
-             )}
           </div>
         </div>
       </header>
@@ -366,14 +401,24 @@ export default function Navbar() {
                           : 'bg-background/40 text-body hover:bg-background border border-secondary/40 hover:border-secondary'
                       }`}
                     >
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors overflow-hidden ${
                         location.pathname === '/settings' 
                           ? 'bg-black/10 text-neutral-950' 
                           : isDark 
                             ? 'bg-zinc-900 group-hover:bg-[#D4AF37] group-hover:text-black border border-zinc-800' 
                             : 'bg-white group-hover:bg-[#D4AF37] group-hover:text-black border border-secondary'
                       }`}>
-                        <User size={16} strokeWidth={location.pathname === '/settings' ? 2.5 : 1.5} />
+                        {userPhoto && !navPhotoError ? (
+                          <img 
+                            src={userPhoto} 
+                            alt="" 
+                            onError={() => setNavPhotoError(true)} 
+                            className="w-full h-full object-cover rounded-lg" 
+                            referrerPolicy="no-referrer" 
+                          />
+                        ) : (
+                          <User size={16} strokeWidth={location.pathname === '/settings' ? 2.5 : 1.5} />
+                        )}
                       </div>
                       <div className="flex flex-col">
                         <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${location.pathname === '/settings' ? 'text-neutral-950' : isDark ? 'text-zinc-200' : 'text-heading'}`}>

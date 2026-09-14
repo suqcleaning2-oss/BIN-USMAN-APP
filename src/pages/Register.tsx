@@ -1,12 +1,54 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { createUserWithEmailAndPassword, updateProfile, getRedirectResult } from 'firebase/auth';
-import { Capacitor } from '@capacitor/core';
-import { auth } from '../lib/firebase';
-import { signInWithGoogle } from '../lib/google-auth';
-import { ensureUserProfile } from '../lib/user-profile';
+import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { toast } from 'sonner';
 import { User, Mail, Lock, ArrowRight, Eye, EyeOff, Phone, Check, X } from 'lucide-react';
+import { getHighResGooglePhoto } from '../lib/avatar-utils';
+
+const configureGoogleProvider = () => {
+  const provider = new GoogleAuthProvider();
+  provider.addScope('profile');
+  provider.addScope('email');
+  provider.setCustomParameters({
+    prompt: 'select_account',
+  });
+  return provider;
+};
+
+const syncGoogleUser = async (user: any) => {
+  const docRef = doc(db, 'users', user.uid);
+  const docSnap = await getDoc(docRef);
+  const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
+  const highResPhoto = getHighResGooglePhoto(user.photoURL);
+
+  const userData = {
+    id: user.uid,
+    uid: user.uid,
+    fullName: user.displayName || 'Google User',
+    name: user.displayName || 'Google User',
+    email: user.email || '',
+    phone: user.phoneNumber || '',
+    phoneNumber: user.phoneNumber || '',
+    photoURL: highResPhoto,
+    photo: highResPhoto,
+    role: isAdminEmail ? 'admin' : 'user',
+    blocked: false,
+    updatedAt: serverTimestamp(),
+  };
+
+  try {
+    if (!docSnap.exists()) {
+      await setDoc(docRef, { ...userData, createdAt: serverTimestamp() });
+    } else {
+      await setDoc(docRef, userData, { merge: true });
+    }
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
+  }
+};
 
 const PASSWORD_REQUIREMENTS = [
   { id: 'length', label: 'At least 8 characters', test: (pw: string) => pw.length >= 8 },
@@ -33,17 +75,14 @@ export default function Register() {
     navigate(destination, { state: bookingState, replace: true });
   };
 
-  // Handle redirect result if user returning from signInWithRedirect (web only)
+  // Handle redirect result if user returning from signInWithRedirect
   React.useEffect(() => {
-    if (Capacitor.isNativePlatform()) return;
-
     const handleRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
           const user = result.user;
-          await ensureUserProfile(user);
-
+          await syncGoogleUser(user);
           toast.success('Signed in successfully!');
           redirectAfterAuth();
         }
@@ -97,11 +136,26 @@ export default function Register() {
 
       // Update name in Auth profile
       await updateProfile(user, { displayName: fullName });
-      await ensureUserProfile(user, {
+
+      // Create user document in Firestore
+      const isAdminEmail = email.toLowerCase() === 'suqcleaning2@gmail.com' || email.toLowerCase() === 'mqaisar11550@gmail.com';
+      const userData = {
+        id: user.uid,
+        uid: user.uid,
         fullName: fullName.trim(),
-        phone: phone.trim(),
+        name: fullName.trim(),
         email: email.trim(),
-      });
+        phone: phone.trim(),
+        phoneNumber: phone.trim(),
+        role: isAdminEmail ? 'admin' : 'user',
+        blocked: false,
+        createdAt: serverTimestamp(),
+      };
+      try {
+        await setDoc(doc(db, 'users', user.uid), userData);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
+      }
 
       setLoading(false);
       toast.success('Account created successfully!');
@@ -121,20 +175,25 @@ export default function Register() {
   };
 
   const handleGoogleSignIn = async () => {
+    const provider = configureGoogleProvider();
     try {
-      const result = await signInWithGoogle();
-      await ensureUserProfile(result.user);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      await syncGoogleUser(user);
 
       toast.success('Signed in successfully!');
       redirectAfterAuth();
     } catch (error: any) {
-      if (
-        error.code === 'auth/popup-closed-by-user' ||
-        error.code === 'auth/cancelled-popup-request' ||
-        error.message?.includes('canceled') ||
-        error.message?.includes('cancelled')
-      ) {
-        console.log("Google sign-in cancelled.");
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        console.log("Popup closed or cancelled, retrying with redirect...");
+        toast.info('Popup closed, redirecting to Google...');
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirectError: any) {
+          console.error("Redirect sign-in error:", redirectError);
+          toast.error('Failed to initiate redirect sign-in');
+        }
         return;
       }
       console.error(error);
@@ -147,8 +206,8 @@ export default function Register() {
   };
 
   return (
-    <div className="max-w-md w-full mx-auto py-8 sm:py-24 px-1 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-secondary shadow-2xl p-6 sm:p-12 space-y-8 sm:space-y-10">
+    <div className="max-w-md mx-auto py-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+      <div className="bg-white rounded-[3rem] border border-secondary shadow-2xl p-12 space-y-10">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary-dark border border-primary/20 mx-auto">
             <User size={32} strokeWidth={1} />
