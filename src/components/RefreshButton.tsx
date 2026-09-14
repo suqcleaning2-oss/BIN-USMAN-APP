@@ -15,7 +15,6 @@ export function RefreshButton({ onRefresh, className = "" }: RefreshButtonProps)
     setLoading(true);
     try {
       await onRefresh();
-      toast.success('Data refreshed successfully');
     } catch (error) {
       console.error('Refresh error:', error);
       toast.error('Failed to refresh data');

@@ -16,7 +16,7 @@ export interface WhatsAppBookingParams {
   nights: number | string;
   totalAmount: string | number;
   guestName: string;
-  phone: string;
+  phone?: string | null;
   email: string;
   listingId: string;
   durationType?: string;

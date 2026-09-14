@@ -57,6 +57,7 @@ function AppRoutes() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
+          <Route path="/dashboard" element={<AuthGuard><Navigate to="/my-bookings" replace /></AuthGuard>} />
           <Route path="/booking/:id" element={<AuthGuard><BookingConfirmation /></AuthGuard>} />
           <Route path="/payment/status/:status" element={<Navigate to="/my-bookings" replace />} />
           <Route path="/my-bookings" element={<AuthGuard><MyBookings /></AuthGuard>} />

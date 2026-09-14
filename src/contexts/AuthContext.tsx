@@ -15,7 +15,7 @@ export interface UserProfile {
   id: string;
   fullName: string;
   email: string;
-  phone: string;
+  phone?: string | null;
   role: 'user' | 'admin';
   photoURL?: string | null;
   photo?: string | null;

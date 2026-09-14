@@ -61,7 +61,7 @@ export default function ListProperty() {
     const finalCity = formatCityName(isCustomCity ? customCityInput : formData.city);
 
     // Validate required fields
-    if (!formData.fullName.trim() || !formData.contactNumber.trim() || !formData.email.trim() || 
+    if (!formData.fullName.trim() || !formData.email.trim() || 
         !formData.totalProperties || !formData.price || !finalCity) {
       toast.error("Please fill in all mandatory fields.");
       return;
@@ -72,7 +72,7 @@ export default function ListProperty() {
       const appCollection = collection(db, 'lister_applications');
       await addDoc(appCollection, {
         fullName: formData.fullName.trim(),
-        contactNumber: formData.contactNumber.trim(),
+        contactNumber: formData.contactNumber ? formData.contactNumber.trim() : "",
         email: formData.email.trim(),
         totalProperties: Number(formData.totalProperties),
         price: Number(formData.price),
@@ -174,13 +174,12 @@ export default function ListProperty() {
           <div className="space-y-3">
             <label className="text-[10px] uppercase font-black text-body/40 tracking-[0.25em] ml-1 flex items-center gap-1.5">
               <Phone size={12} className="text-primary-dark" />
-              Contact Number <span className="text-red-500">*</span>
+              Contact Number <span className="text-body/30 text-[9px] lowercase font-normal">(optional)</span>
             </label>
             <input 
               type="tel" 
-              required
               className="w-full bg-background/30 border border-secondary rounded-2xl px-6 py-4 text-sm font-semibold focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-body/20 italic"
-              placeholder="e.g. +92 300 1234567"
+              placeholder="Phone number (optional)"
               value={formData.contactNumber}
               onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
             />

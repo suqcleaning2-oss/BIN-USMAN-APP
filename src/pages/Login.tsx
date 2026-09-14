@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, OAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { toast } from 'sonner';
@@ -51,6 +51,41 @@ const syncGoogleUserToFirestore = async (user: any) => {
       email: user.email || docSnap.data()?.email || '',
       updatedAt: serverTimestamp(),
     }, { merge: true });
+  }
+};
+
+const syncAppleUserToFirestore = async (user: any) => {
+  try {
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
+    const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
+    const displayName = user.displayName || user.email?.split('@')[0] || 'Apple User';
+
+    if (!docSnap.exists()) {
+      await setDoc(docRef, {
+        id: user.uid,
+        uid: user.uid,
+        fullName: displayName,
+        name: displayName,
+        email: user.email || '',
+        phone: user.phoneNumber || '',
+        phoneNumber: user.phoneNumber || '',
+        photoURL: user.photoURL || null,
+        photo: user.photoURL || null,
+        role: isAdminEmail ? 'admin' : 'user',
+        blocked: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await setDoc(docRef, {
+        fullName: docSnap.data()?.fullName || displayName,
+        email: user.email || docSnap.data()?.email || '',
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+  } catch (err) {
+    console.warn("Error syncing Apple user profile:", err);
   }
 };
 
@@ -317,6 +352,22 @@ export default function Login() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    try {
+      const provider = new OAuthProvider('apple.com');
+      provider.addScope('email');
+      provider.addScope('name');
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      console.log("Apple user:", user);
+      await syncAppleUserToFirestore(user);
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error("Apple Sign In Error:", error);
+      alert(error.message);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     const provider = configureGoogleProvider();
     try {
@@ -413,7 +464,18 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
+          <button 
+            type="button"
+            onClick={handleAppleSignIn}
+            className="w-full flex items-center justify-center gap-3 bg-black hover:bg-neutral-900 active:bg-neutral-800 text-white py-4 rounded-2xl font-bold transition-all shadow-md group cursor-pointer"
+          >
+            <svg className="w-5 h-5 fill-current" viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg">
+              <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.6-7.79-11.73-14.25-5.87-9.33-10.36-19.98-13.48-31.95-3.12-11.97-4.68-23.36-4.68-34.19 0-14.73 3.63-26.68 10.88-35.85 7.25-9.17 16.32-13.87 27.2-14.1 4.58 0 9.87 1.25 15.86 3.75 6 2.5 10.15 3.78 12.46 3.84 1.84 0 6.13-1.34 12.87-4.03 6.74-2.69 12.37-3.9 16.89-3.63 12.63.62 22.47 5.37 29.53 14.25-11.05 6.74-16.45 16.08-16.19 28.02.26 9.4 3.83 17.26 10.72 23.59 6.89 6.33 15.11 10.02 24.66 11.08-2.07 6.33-4.47 12.59-7.22 18.78zm-29.39-114.7c0 7.37-2.73 14.18-8.19 20.44-5.46 6.26-12.18 9.92-20.16 10.98-.39-1.25-.59-2.48-.59-3.69 0-7.37 2.92-14.26 8.76-20.67 5.84-6.41 12.63-10.03 20.37-10.86.13 1.25.19 2.51.19 3.8z" />
+            </svg>
+            <span className="text-[11px] font-black uppercase tracking-widest">Continue with Apple</span>
+          </button>
+
           <button 
             onClick={handleGoogleSignIn}
             className="w-full flex items-center justify-center gap-4 bg-background/50 hover:bg-background text-heading py-4 rounded-2xl font-bold transition-all border border-secondary shadow-sm group"

@@ -9,7 +9,7 @@ import {
   getFirestore,
   initializeFirestore,
   persistentLocalCache,
-  persistentSingleTabManager,
+  persistentMultipleTabManager,
 } from "firebase/firestore";
 import { Capacitor } from "@capacitor/core";
 
@@ -66,7 +66,7 @@ function createDb() {
 
     return initializeFirestore(app, {
       localCache: persistentLocalCache({
-        tabManager: persistentSingleTabManager(),
+        tabManager: persistentMultipleTabManager(),
       }),
     });
   } catch (error) {

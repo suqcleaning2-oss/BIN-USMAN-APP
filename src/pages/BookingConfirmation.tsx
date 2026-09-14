@@ -363,10 +363,6 @@ export default function BookingConfirmation() {
       toast.error('Please enter your name.');
       return;
     }
-    if (!guestPhone.trim()) {
-      toast.error('Please provide a contact phone number.');
-      return;
-    }
     if (selectedDates.length === 0) {
       toast.error('Please select at least one booking date.');
       return;
@@ -769,12 +765,11 @@ export default function BookingConfirmation() {
                 <div className="space-y-1.5">
                   <label className="text-[10px] text-body/60 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
                     <Phone size={11} />
-                    <span>WhatsApp / Phone Number</span>
+                    <span>WhatsApp / Phone Number (optional)</span>
                   </label>
                   <input
                     type="tel"
-                    required
-                    placeholder="e.g. +92 300 1234567"
+                    placeholder="Phone number (optional)"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
                     className="w-full bg-background/50 border border-secondary rounded-xl px-4 py-3 text-xs font-bold text-heading focus:outline-none focus:ring-2 focus:ring-primary-dark/20 transition-all"
