@@ -1,40 +1,52 @@
 workflows:
   ios-ipa:
-    name: iOS Signed IPA Firebase 11
-    instance_type: mac_mini_m2
-    max_build_duration: 60
+    name: iOS Signed IPA - Build 901
+    instance_type: mac_mini_m1
+    max_build_duration: 120
     environment:
       vars:
-        XCODE_PROJECT: "ios/App.xcodeproj"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
         BUNDLE_ID: "binusman.application"
         APP_STORE_CONNECT_KEY_ID: "9F33Z6XYHY"
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
-      node: 22.6.0
-      xcode: latest
+        XCODE_SCHEME: "App"
+        BUILD_NUMBER: "901"
+      node: 20
+      xcode: 15.2
       cocoapods: default
       ios_signing:
         distribution_type: app_store
         bundle_identifier: $BUNDLE_ID
     scripts:
-      - name: Install NPM dependencies
+      - name: Install dependencies
         script: npm ci
       - name: Build Web App
         script: npm run build
-      - name: Sync iOS with Firebase 11 SPM
+      - name: Sync iOS with Capacitor
         script: |
           find node_modules/@capacitor-firebase -name Package.swift -type f -exec perl -pi -e 's/\.upToNextMajor\(from: "12\.7\.0"\)/.exact("11.12.0")/g' {} +
           npx cap sync ios
       - name: Configure iOS signing
         script: |
           xcode-project use-profiles
-      - name: Set Build Number to 801
+      - name: Set Build Number
         script: |
           cd ios/App
-          agvtool new-version -all 801
-      - name: Build iOS IPA
+          agvtool new-version -all $BUILD_NUMBER
+      - name: Build Archive
         script: |
           cd ios/App
-          xcodebuild -project App.xcodeproj -scheme App -configuration Release -archivePath $CM_BUILD_DIR/App.xcarchive archive IPHONEOS_DEPLOYMENT_TARGET=15.0 -allowProvisioningUpdates
-          xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/App.xcarchive -exportOptionsPlist "$HOME/export_options.plist" -exportPath $CM_BUILD_DIR
+          xcodebuild -project App.xcodeproj \
+            -scheme $XCODE_SCHEME \
+            -configuration Release \
+            -archivePath $CM_BUILD_DIR/App.xcarchive archive \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
+            -allowProvisioningUpdates
+      - name: Export IPA
+        script: |
+          xcodebuild -exportArchive \
+            -archivePath $CM_BUILD_DIR/App.xcarchive \
+            -exportPath $CM_BUILD_DIR \
+            -exportOptionsPlist ExportOptions.plist
     artifacts:
       - $CM_BUILD_DIR/*.ipa
