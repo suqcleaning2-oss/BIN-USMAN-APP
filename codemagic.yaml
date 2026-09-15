@@ -18,16 +18,11 @@ workflows:
             exit 1
           fi
 
-          if [ -z "$KEY_PATH" ]; then
-            echo "Error: App Store Connect .p8 key nahi mili!"
-            exit 1
-          fi
-
           echo "Found IPA: $IPA_PATH"
           echo "Uploading to TestFlight..."
 
           app-store-connect publish \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
             --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "$(cat "$KEY_PATH")" \
+            --private-key "$(cat $KEY_PATH)" \
             --path "$IPA_PATH"
