@@ -32,7 +32,8 @@ workflows:
           pod install --repo-update
       - name: Configure iOS signing
         script: |
-          xcode-project use-profiles
+          xcode-project use-profiles \
+            --export-options-plist ios/ExportOptions.plist
       - name: Set Build Number
         script: |
           cd ios/App
