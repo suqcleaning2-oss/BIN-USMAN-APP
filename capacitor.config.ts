@@ -17,6 +17,7 @@ const config: CapacitorConfig = {
   experimental: {
     ios: {
       spm: {
+        swiftToolsVersion: '6.1',
         packageOptions: {
           '@capacitor-firebase/authentication': {
             symlink: true,
