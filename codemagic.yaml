@@ -39,7 +39,7 @@ workflows:
           agvtool new-version -all $BUILD_NUMBER
       - name: Build Archive
         script: |
-          cd ios/App
+          cd ios
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
