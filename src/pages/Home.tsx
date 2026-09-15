@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ListingCard from '../components/ListingCard';
+import LoadingState from '../components/LoadingState';
 import { Search, Loader2, MapPin, Building2, ChevronDown } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -301,7 +302,9 @@ export default function Home() {
         </div>
 
         {loading ? (
-          renderSkeletons()
+          <div className="py-24 flex items-center justify-center min-h-[380px] w-full rounded-[2.5rem] border border-dashed border-secondary dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 transition-opacity duration-500 animate-in fade-in">
+            <LoadingState size="lg" />
+          </div>
         ) : listingsToRender.length > 0 ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-700">

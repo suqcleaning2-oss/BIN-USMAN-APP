@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
+import LoadingState from './LoadingState';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -70,17 +71,16 @@ export default function OptimizedImage({
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      {/* Blurred Low-Resolution Placeholder */}
-      {!isLoaded && !error && (
-        <img
-          src={placeholderUrl}
-          alt={alt}
-          className="w-full h-full object-cover blur-md scale-105 transition-all duration-300"
-          {...props}
-        />
-      )}
+      {/* Centered Loading State Placeholder with Fade-Out Transition */}
+      <div 
+        className={`absolute inset-0 z-10 flex items-center justify-center bg-neutral-100 dark:bg-[#151515] transition-opacity duration-500 ease-in-out ${
+          isLoaded || error ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <LoadingState size="sm" />
+      </div>
 
-      {/* Optimized High-Resolution Image */}
+      {/* Optimized High-Resolution Image with Fade-In Transition */}
       <motion.img
         src={error ? 'https://picsum.photos/seed/house/400/300' : optimizedUrl}
         alt={alt}
