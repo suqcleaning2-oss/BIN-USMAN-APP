@@ -1,57 +1,33 @@
 workflows:
-  ios-ipa-build:
-    name: iOS Signed IPA - Build 903
+  upload-ipa-only:
+    name: Upload Any IPA to TestFlight
     instance_type: mac_mini_m1
-    max_build_duration: 120
+    max_build_duration: 20
     environment:
       vars:
-        XCODE_PROJECT: "BIN-USMAN-APP"
-        BUNDLE_ID: "binusman.application"
-        APP_STORE_CONNECT_KEY_ID: "9F33Z6XYHY"
         APP_STORE_CONNECT_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
-        XCODE_SCHEME: "BIN-USMAN-APP"
-        BUILD_NUMBER: "903"
-      node: 22
-      xcode: latest
-      cocoapods: default
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: $BUNDLE_ID
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "9F33Z6XYHY"
     scripts:
-      - name: Install dependencies
-        script: npm ci
-      - name: Build Web App
-        script: npm run build
-      - name: Sync iOS with Capacitor
+      - name: Upload IPA to TestFlight
         script: |
-          find node_modules/@capacitor-firebase -name Package.swift -type f -exec perl -pi -e 's/\.upToNextMajor\(from: "12\.7\.0"\)/.exact("11.12.0")/g' {} +
-          npx cap sync ios
-      - name: Install CocoaPods dependencies
-        script: |
-          cd ios
-          pod install --repo-update
-      - name: Configure iOS signing
-        script: |
-          xcode-project use-profiles \
-            --export-options-plist ios/ExportOptions.plist
-      - name: Set Build Number
-        script: |
-          cd ios/App
-          agvtool new-version -all $BUILD_NUMBER
-      - name: Build Archive
-        script: |
-          cd ios
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath $CM_BUILD_DIR/App.xcarchive archive \
-            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
-            -allowProvisioningUpdates
-      - name: Export IPA
-        script: |
-          xcodebuild -exportArchive \
-            -archivePath $CM_BUILD_DIR/App.xcarchive \
-            -exportPath $CM_BUILD_DIR \
-            -exportOptionsPlist ios/ExportOptions.plist
-    artifacts:
-      - $CM_BUILD_DIR/*.ipa
+          IPA_PATH=$(find . -maxdepth 2 -type f -name "*.ipa" | head -n 1)
+          KEY_PATH=$(find . -maxdepth 2 -type f -name "*.p8" | head -n 1)
+
+          if [ -z "$IPA_PATH" ]; then
+            echo "Error: Koi bhi .ipa file nahi mili repo me!"
+            exit 1
+          fi
+
+          if [ -z "$KEY_PATH" ]; then
+            echo "Error: App Store Connect .p8 key nahi mili!"
+            exit 1
+          fi
+
+          echo "Found IPA: $IPA_PATH"
+          echo "Uploading to TestFlight..."
+
+          app-store-connect publish \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --private-key "$(cat "$KEY_PATH")" \
+            --path "$IPA_PATH"
