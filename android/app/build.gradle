@@ -13,7 +13,7 @@ android {
 
     signingConfigs {
         release {
-            storeFile file(keystoreProperties.getProperty('storeFile', '../new-upload-key.jks'))
+            storeFile file(keystoreProperties.getProperty('storeFile', '../../new-upload-key.jks'))
             storePassword keystoreProperties.getProperty('storePassword')
             keyAlias keystoreProperties.getProperty('keyAlias', 'upload')
             keyPassword keystoreProperties.getProperty('keyPassword')
@@ -23,7 +23,7 @@ android {
         applicationId "com.binusman.binusman"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20203
+        versionCode 20300
         versionName "1.0.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
