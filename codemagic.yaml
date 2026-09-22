@@ -5,7 +5,7 @@ workflows:
     max_build_duration: 60
     environment:
       vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_WORKSPACE: "ios/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "binusman.application"
         BUILD_NUMBER: "905"
