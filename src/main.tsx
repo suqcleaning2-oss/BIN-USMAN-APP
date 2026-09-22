@@ -1,8 +1,16 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Capacitor} from '@capacitor/core';
+import {getRedirectResult} from 'firebase/auth';
+import {auth} from './lib/firebase';
 import App from './App.tsx';
 import './index.css';
+
+// Complete redirect authentication on app start for iOS (capacitor://localhost) and Android (https://localhost)
+getRedirectResult(auth).catch((err) => {
+  // Graceful catch so startup never fails
+  console.warn('[App Init] Redirect result check:', err?.message || err);
+});
 
 if (Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native-app');

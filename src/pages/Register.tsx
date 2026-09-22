@@ -1,86 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, OAuthProvider } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { toast } from 'sonner';
 import { User, Mail, Lock, ArrowRight, Eye, EyeOff, Phone, Check, X } from 'lucide-react';
 import { getHighResGooglePhoto } from '../lib/avatar-utils';
-
-const configureGoogleProvider = () => {
-  const provider = new GoogleAuthProvider();
-  provider.addScope('profile');
-  provider.addScope('email');
-  provider.setCustomParameters({
-    prompt: 'select_account',
-  });
-  return provider;
-};
-
-const syncGoogleUser = async (user: any) => {
-  const docRef = doc(db, 'users', user.uid);
-  const docSnap = await getDoc(docRef);
-  const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
-  const highResPhoto = getHighResGooglePhoto(user.photoURL);
-
-  const userData = {
-    id: user.uid,
-    uid: user.uid,
-    fullName: user.displayName || 'Google User',
-    name: user.displayName || 'Google User',
-    email: user.email || '',
-    phone: user.phoneNumber || '',
-    phoneNumber: user.phoneNumber || '',
-    photoURL: highResPhoto,
-    photo: highResPhoto,
-    role: isAdminEmail ? 'admin' : 'user',
-    blocked: false,
-    updatedAt: serverTimestamp(),
-  };
-
-  try {
-    if (!docSnap.exists()) {
-      await setDoc(docRef, { ...userData, createdAt: serverTimestamp() });
-    } else {
-      await setDoc(docRef, userData, { merge: true });
-    }
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
-  }
-};
-
-const syncAppleUser = async (user: any) => {
-  const docRef = doc(db, 'users', user.uid);
-  const docSnap = await getDoc(docRef);
-  const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
-  const displayName = user.displayName || user.email?.split('@')[0] || 'Apple User';
-
-  const userData = {
-    id: user.uid,
-    uid: user.uid,
-    fullName: displayName,
-    name: displayName,
-    email: user.email || '',
-    phone: user.phoneNumber || '',
-    phoneNumber: user.phoneNumber || '',
-    photoURL: user.photoURL || null,
-    photo: user.photoURL || null,
-    role: isAdminEmail ? 'admin' : 'user',
-    blocked: false,
-    updatedAt: serverTimestamp(),
-  };
-
-  try {
-    if (!docSnap.exists()) {
-      await setDoc(docRef, { ...userData, createdAt: serverTimestamp() });
-    } else {
-      await setDoc(docRef, userData, { merge: true });
-    }
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
-  }
-};
 
 const PASSWORD_REQUIREMENTS = [
   { id: 'length', label: 'At least 8 characters', test: (pw: string) => pw.length >= 8 },
@@ -91,6 +18,7 @@ const PASSWORD_REQUIREMENTS = [
 ];
 
 export default function Register() {
+  const { signInWithApple, signInWithGoogle } = useAuth();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -106,25 +34,6 @@ export default function Register() {
     const bookingState = location.state?.bookingState;
     navigate(destination, { state: bookingState, replace: true });
   };
-
-  // Handle redirect result if user returning from signInWithRedirect
-  React.useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          const user = result.user;
-          await syncGoogleUser(user);
-          toast.success('Signed in successfully!');
-          redirectAfterAuth();
-        }
-      } catch (error: any) {
-        console.error("Redirect error:", error);
-        toast.error("Failed to sign in after redirect");
-      }
-    };
-    handleRedirect();
-  }, [navigate, location.state]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,48 +104,27 @@ export default function Register() {
 
   const handleAppleSignIn = async () => {
     try {
-      const provider = new OAuthProvider('apple.com');
-      provider.addScope('email');
-      provider.addScope('name');
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      console.log("Apple user:", user);
-      await syncAppleUser(user);
-      navigate('/dashboard');
+      const user = await signInWithApple();
+      if (user) {
+        toast.success('Welcome back!');
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       console.error("Apple Sign In Error:", error);
-      alert(error.message);
+      toast.error("Apple Sign In failed, please try Email login");
     }
   };
 
   const handleGoogleSignIn = async () => {
-    const provider = configureGoogleProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      await syncGoogleUser(user);
-
-      toast.success('Signed in successfully!');
-      redirectAfterAuth();
+      const user = await signInWithGoogle();
+      if (user) {
+        toast.success('Signed in successfully!');
+        redirectAfterAuth();
+      }
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-        console.log("Popup closed or cancelled, retrying with redirect...");
-        toast.info('Popup closed, redirecting to Google...');
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (redirectError: any) {
-          console.error("Redirect sign-in error:", redirectError);
-          toast.error('Failed to initiate redirect sign-in');
-        }
-        return;
-      }
-      console.error(error);
-      if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Domain not authorized. Please add this URL to Firebase Authorized Domains.');
-      } else {
-        toast.error('Failed to sign in with Google');
-      }
+      console.error("Google Sign In Error:", error);
+      toast.error("Failed to sign in with Google. Please try again.");
     }
   };
 

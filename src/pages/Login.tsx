@@ -1,95 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, OAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { getHighResGooglePhoto } from '../lib/avatar-utils';
 
-const configureGoogleProvider = () => {
-  const provider = new GoogleAuthProvider();
-  // 1. Explicitly request profile and email scopes to ensure photo and personal info are fetched
-  provider.addScope('profile');
-  provider.addScope('email');
-  provider.setCustomParameters({
-    prompt: 'select_account',
-  });
-  return provider;
-};
-
-const syncGoogleUserToFirestore = async (user: any) => {
-  const docRef = doc(db, 'users', user.uid);
-  const docSnap = await getDoc(docRef);
-  const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
-  
-  // 2. Convert Google thumbnail photo (=s96-c) to HD (=s400-c)
-  const highResPhoto = getHighResGooglePhoto(user.photoURL);
-
-  if (!docSnap.exists()) {
-    await setDoc(docRef, {
-      id: user.uid,
-      uid: user.uid,
-      fullName: user.displayName || 'Google User',
-      name: user.displayName || 'Google User',
-      email: user.email || '',
-      phone: user.phoneNumber || '',
-      phoneNumber: user.phoneNumber || '',
-      photoURL: highResPhoto,
-      photo: highResPhoto,
-      role: isAdminEmail ? 'admin' : 'user',
-      blocked: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  } else {
-    // If user document already exists, merge high-res photo so it is never blank
-    await setDoc(docRef, {
-      photoURL: highResPhoto,
-      photo: highResPhoto,
-      fullName: docSnap.data()?.fullName || user.displayName || 'Google User',
-      email: user.email || docSnap.data()?.email || '',
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-  }
-};
-
-const syncAppleUserToFirestore = async (user: any) => {
-  try {
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
-    const isAdminEmail = user.email?.toLowerCase() === 'suqcleaning2@gmail.com' || user.email?.toLowerCase() === 'mqaisar11550@gmail.com';
-    const displayName = user.displayName || user.email?.split('@')[0] || 'Apple User';
-
-    if (!docSnap.exists()) {
-      await setDoc(docRef, {
-        id: user.uid,
-        uid: user.uid,
-        fullName: displayName,
-        name: displayName,
-        email: user.email || '',
-        phone: user.phoneNumber || '',
-        phoneNumber: user.phoneNumber || '',
-        photoURL: user.photoURL || null,
-        photo: user.photoURL || null,
-        role: isAdminEmail ? 'admin' : 'user',
-        blocked: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    } else {
-      await setDoc(docRef, {
-        fullName: docSnap.data()?.fullName || displayName,
-        email: user.email || docSnap.data()?.email || '',
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    }
-  } catch (err) {
-    console.warn("Error syncing Apple user profile:", err);
-  }
-};
-
 export default function Login() {
+  const { signInWithApple, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -184,26 +104,6 @@ export default function Login() {
 
     return () => clearInterval(timer);
   }, [countdownSeconds, lockoutActive]);
-
-  // Handle redirect result if user returning from signInWithRedirect
-  React.useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          const user = result.user;
-          // Sync user with photoURL to Firestore
-          await syncGoogleUserToFirestore(user);
-          toast.success('Welcome back!');
-          redirectAfterAuth();
-        }
-      } catch (error: any) {
-        console.error("Redirect error:", error);
-        toast.error("Failed to sign in after redirect");
-      }
-    };
-    handleRedirect();
-  }, [navigate, location.state]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -354,51 +254,27 @@ export default function Login() {
 
   const handleAppleSignIn = async () => {
     try {
-      const provider = new OAuthProvider('apple.com');
-      provider.addScope('email');
-      provider.addScope('name');
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      console.log("Apple user:", user);
-      await syncAppleUserToFirestore(user);
-      navigate('/dashboard');
+      const user = await signInWithApple();
+      if (user) {
+        toast.success('Welcome back!');
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       console.error("Apple Sign In Error:", error);
-      alert(error.message);
+      toast.error("Apple Sign In failed, please try Email login");
     }
   };
 
   const handleGoogleSignIn = async () => {
-    const provider = configureGoogleProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Sync user profile including high-res photo to Firestore
-      await syncGoogleUserToFirestore(user);
-
-      toast.success('Welcome back!');
-      redirectAfterAuth();
+      const user = await signInWithGoogle();
+      if (user) {
+        toast.success('Welcome back!');
+        redirectAfterAuth();
+      }
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-        console.log("Popup closed or cancelled, retrying with redirect...");
-        toast.info('Popup closed, redirecting to Google...');
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (redirectError: any) {
-          console.error("Redirect sign-in error:", redirectError);
-          toast.error('Failed to initiate redirect sign-in');
-        }
-        return;
-      }
-      console.error(error);
-      if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Domain not authorized. Please add this URL to Firebase Authorized Domains.');
-      } else if (error.code === 'auth/invalid-credential') {
-        toast.error('Authentication credential invalid. Please try again.');
-      } else {
-        toast.error('Failed to sign in with Google');
-      }
+      console.error("Google Sign In Error:", error);
+      toast.error("Failed to sign in with Google. Please try again.");
     }
   };
 
