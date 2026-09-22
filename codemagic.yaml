@@ -7,9 +7,6 @@ workflows:
       xcode: latest
       vars:
         BUILD_NUMBER: "905"
-        XCODE_PROJECT: "ios/App/App.xcodeproj"
-        XCODE_SCHEME: "App"
-        XCODE_WORKSPACE: "ios/App.xcworkspace"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: binusman.application
@@ -27,17 +24,14 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           cd ios && pod install --repo-update
-      - name: Configure automatic iOS signing
-        script: |
-          xcode-project use-profiles
       - name: Set build number
         script: |
           cd ios/App && agvtool new-version -all "$BUILD_NUMBER"
       - name: Build signed IPA
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
+            --workspace "ios/App.xcworkspace" \
+            --scheme "App" \
             --archive-flags "COMPILER_INDEX_STORE_ENABLE=NO"
     artifacts:
       - build/ios/ipa/*.ipa
