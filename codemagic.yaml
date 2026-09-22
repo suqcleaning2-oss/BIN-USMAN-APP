@@ -35,11 +35,7 @@ workflows:
 
       - name: Install CocoaPods dependencies
         script: |
-          cd ios && pod install --repo-update
-
-      - name: Configure iOS signing
-        script: |
-          xcode-project use-profiles
+          cd ios/App && pod install
 
       - name: Set Build Number
         script: |
@@ -48,16 +44,7 @@ workflows:
 
       - name: Build Archive and Export IPA
         script: |
-          xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            --archive-flags "COMPILER_INDEX_STORE_ENABLE=NO" \
-            --export-options-plist "ios/ExportOptions.plist"
+          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
