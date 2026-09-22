@@ -10,8 +10,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     FirebaseAuthentication: {
-      skipNativeAuth: true,
-      providers: ['google.com'],
+      skipNativeAuth: false,
+      providers: ['google.com', 'apple.com'],
     },
   },
   experimental: {
@@ -24,7 +24,7 @@ const config: CapacitorConfig = {
           },
         },
         packageTraits: {
-          '@capacitor-firebase/authentication': ['Google'],
+          '@capacitor-firebase/authentication': ['Google', 'Apple'],
         },
       },
     },
