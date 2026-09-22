@@ -24,7 +24,7 @@ const config: CapacitorConfig = {
           },
         },
         packageTraits: {
-          '@capacitor-firebase/authentication': ['Google', 'Apple'],
+          '@capacitor-firebase/authentication': ['Google'],
         },
       },
     },
