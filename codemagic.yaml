@@ -24,7 +24,7 @@ workflows:
       - name: Configure iOS signing
         script: xcode-project use-profiles
       - name: Set Build Number
-        script: cd ios && agvtool new-version -all "$BUILD_NUMBER"
+        script: cd ios/App && agvtool new-version -all "$BUILD_NUMBER"
       - name: Build Archive
         script: |
           xcode-project build-archive \
