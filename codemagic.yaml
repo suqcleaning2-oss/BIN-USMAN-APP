@@ -9,7 +9,7 @@ workflows:
         XCODE_SCHEME: "App"
         BUNDLE_ID: "binusman.application"
         BUILD_NUMBER: "905"
-      node: 20.11.1
+      node: 22.14.0
       xcode: latest
       cocoapods: default
 
@@ -35,7 +35,7 @@ workflows:
 
       - name: Install CocoaPods dependencies
         script: |
-          cd ios/App && pod install
+          cd ios && pod install --repo-update
 
       - name: Set Build Number
         script: |
