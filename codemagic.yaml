@@ -28,7 +28,7 @@ workflows:
       - name: Build Archive and Export IPA
         script: |
           xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
+            --project "ios/App/App.xcodeproj" \
             --scheme "$XCODE_SCHEME" \
             --archive-flags "COMPILER_INDEX_STORE_ENABLE=NO" \
             --export-options-plist "ios/ExportOptions.plist"
