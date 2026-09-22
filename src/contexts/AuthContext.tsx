@@ -99,21 +99,28 @@ export const universalSignInWithProvider = async (provider: FirebaseAuthProvider
 
   if (native) {
     const isGoogleProvider = provider.providerId === 'google.com';
-    const result = isGoogleProvider
-      ? await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true })
-      : await FirebaseAuthentication.signInWithApple({ skipNativeAuth: true });
+    if (!isGoogleProvider) {
+      const result = await FirebaseAuthentication.signInWithApple({ skipNativeAuth: false });
+      const credential = result.credential;
+      if (credential?.idToken) {
+        const firebaseCredential = new OAuthProvider('apple.com').credential({
+          idToken: credential.idToken,
+          rawNonce: credential.nonce,
+        });
+        const signedIn = await signInWithCredential(auth, firebaseCredential);
+        return signedIn.user;
+      }
+      throw new Error('Native Apple sign-in did not return an ID token');
+    }
+
+    const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
     const credential = result.credential;
 
     if (!credential?.idToken) {
-      throw new Error(`Native ${provider.providerId} sign-in did not return an ID token`);
+      throw new Error('Native Google sign-in did not return an ID token');
     }
 
-    const firebaseCredential = isGoogleProvider
-      ? GoogleAuthProvider.credential(credential.idToken, credential.accessToken)
-      : new OAuthProvider('apple.com').credential({
-        idToken: credential.idToken,
-        rawNonce: credential.nonce,
-      });
+    const firebaseCredential = GoogleAuthProvider.credential(credential.idToken, credential.accessToken);
     const signedIn = await signInWithCredential(auth, firebaseCredential);
     return signedIn.user;
   } else {
@@ -138,8 +145,8 @@ export const signInWithApple = async (): Promise<User | null> => {
     return user;
   } catch (error: any) {
     console.error("Apple Sign In Error:", error);
-    // 6. Safe error message instead of crashing
-    toast.error("Apple Sign In failed, please try Email login");
+    const detail = error?.message || error?.code;
+    toast.error(detail ? `Apple Sign-In failed: ${detail}` : "Apple Sign-In failed. Please try again.");
     return null;
   }
 };
