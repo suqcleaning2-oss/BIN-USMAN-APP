@@ -25,16 +25,12 @@ workflows:
         script: xcode-project use-profiles
       - name: Set Build Number
         script: cd ios/App && agvtool new-version -all "$BUILD_NUMBER"
-      - name: Build Archive
+      - name: Build Archive and Export IPA
         script: |
-          xcode-project build-archive \
+          xcode-project build-ipa \
             --workspace "ios/App/App.xcworkspace" \
             --scheme "$XCODE_SCHEME" \
-            --archive-flags "COMPILER_INDEX_STORE_ENABLE=NO"
-      - name: Export IPA
-        script: |
-          xcode-project export-ipa \
-            --archive-path build/ios/xcarchive/*.xcarchive \
+            --archive-flags "COMPILER_INDEX_STORE_ENABLE=NO" \
             --export-options-plist "ios/ExportOptions.plist"
     artifacts:
       - build/ios/ipa/*.ipa
