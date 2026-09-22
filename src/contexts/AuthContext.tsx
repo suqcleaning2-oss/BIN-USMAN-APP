@@ -7,8 +7,10 @@ import {
   getRedirectResult, 
   OAuthProvider, 
   GoogleAuthProvider, 
-  AuthProvider as FirebaseAuthProvider 
+  AuthProvider as FirebaseAuthProvider,
+  signInWithCredential,
 } from 'firebase/auth';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getHighResGooglePhoto } from '../lib/avatar-utils';
@@ -96,10 +98,24 @@ export const universalSignInWithProvider = async (provider: FirebaseAuthProvider
   console.log(`[Auth] Initiating social sign in (isNativePlatform: ${native})...`);
 
   if (native) {
-    // In Capacitor iOS WKWebView and Android, signInWithPopup is blocked or loses context.
-    // Use signInWithRedirect and complete on app restart with getRedirectResult.
-    await signInWithRedirect(auth, provider);
-    return null;
+    const isGoogleProvider = provider.providerId === 'google.com';
+    const result = isGoogleProvider
+      ? await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true })
+      : await FirebaseAuthentication.signInWithApple({ skipNativeAuth: true });
+    const credential = result.credential;
+
+    if (!credential?.idToken) {
+      throw new Error(`Native ${provider.providerId} sign-in did not return an ID token`);
+    }
+
+    const firebaseCredential = isGoogleProvider
+      ? GoogleAuthProvider.credential(credential.idToken, credential.accessToken)
+      : new OAuthProvider('apple.com').credential({
+        idToken: credential.idToken,
+        rawNonce: credential.nonce,
+      });
+    const signedIn = await signInWithCredential(auth, firebaseCredential);
+    return signedIn.user;
   } else {
     // On Web (https://), signInWithPopup delivers the fastest and smoothest popup flow.
     const result = await signInWithPopup(auth, provider);
