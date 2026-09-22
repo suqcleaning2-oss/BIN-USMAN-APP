@@ -4,8 +4,6 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
-      groups:
-        - appstore_credentials
       ios_signing:
         distribution_type: app_store
         bundle_identifier: binusman.application
@@ -19,13 +17,6 @@ workflows:
       cocoapods: default
 
     scripts:
-      - name: Set up code signing identities
-        script: |
-          keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-          keychain add-certificates
-          xcode-project use-profiles
-
       - name: Install JavaScript dependencies
         script: |
           npm ci
