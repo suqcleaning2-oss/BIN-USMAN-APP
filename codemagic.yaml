@@ -2,8 +2,11 @@ workflows:
   ios-workflow:
     name: Build and upload signed IPA to TestFlight
     instance_type: mac_mini_m2
-    max_build_duration: 30
+    max_build_duration: 60
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: binusman.application
       vars:
         ASC_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         ASC_KEY_ID: "9F33Z6XYHY"
@@ -54,17 +57,6 @@ workflows:
               --key-id "$ASC_KEY_ID" \
               --private-key "$APP_STORE_PRIVATE_KEY"
           fi
-          CERTIFICATE_KEY_PATH="$HOME/codemagic-distribution.key"
-          openssl genrsa -out "$CERTIFICATE_KEY_PATH" 2048
-          chmod 600 "$CERTIFICATE_KEY_PATH"
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create \
-            --delete-stale-profiles \
-            --issuer-id "$ASC_ISSUER_ID" \
-            --key-id "$ASC_KEY_ID" \
-            --private-key "$APP_STORE_PRIVATE_KEY" \
-            --certificate-key "@file:$CERTIFICATE_KEY_PATH"
           keychain add-certificates
           xcode-project use-profiles
 
