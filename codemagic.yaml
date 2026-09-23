@@ -4,6 +4,9 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: binusman.application
       vars:
         ASC_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         ASC_KEY_ID: "9F33Z6XYHY"
@@ -18,26 +21,22 @@ workflows:
           npm run build
           npx cap sync ios
 
+      - name: Install CocoaPods dependencies
+        script: |
+          set -e
+          cd ios
+          pod install --repo-update
+
       - name: Set iOS build number
         script: |
           set -e
           cd ios/App
           xcrun agvtool new-version -all "$BUILD_NUMBER"
 
-      - name: Fetch App Store signing files
+      - name: Configure App Store signing
         script: |
           set -e
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create \
-            --issuer-id "$ASC_ISSUER_ID" \
-            --key-id "$ASC_KEY_ID" \
-            --private-key "$(cat AuthKey_9F33Z6XYHY.p8)"
-
-      - name: Configure signing
-        script: |
-          set -e
           keychain add-certificates
           xcode-project use-profiles
 
@@ -45,7 +44,7 @@ workflows:
         script: |
           set -e
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
+            --workspace ios/App.xcworkspace \
             --scheme App \
             --config Release \
             --export-options-plist ios/ExportOptions.plist
