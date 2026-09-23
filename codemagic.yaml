@@ -33,7 +33,7 @@ workflows:
           cd ios/App
           xcrun agvtool new-version -all "$BUILD_NUMBER"
 
-      - name: Regenerate App Store signing profile
+      - name: Prepare App Store signing
         script: |
           set -e
           keychain initialize
@@ -58,7 +58,9 @@ workflows:
               --private-key "$APP_STORE_PRIVATE_KEY"
           fi
           keychain add-certificates
-          xcode-project use-profiles
+          xcode-project use-profiles \
+            --archive-method app-store \
+            --export-options-plist ios/ExportOptions.plist
 
       - name: Build signed IPA
         script: |
@@ -67,7 +69,8 @@ workflows:
             --workspace ios/App.xcworkspace \
             --scheme App \
             --config Release \
-            --export-options-plist ios/ExportOptions.plist
+            --export-options-plist ios/ExportOptions.plist \
+            --archive-xcargs 'CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES'
 
       - name: Upload generated IPA to TestFlight
         script: |
