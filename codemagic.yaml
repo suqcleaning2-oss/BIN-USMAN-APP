@@ -1,20 +1,60 @@
 workflows:
   ios-workflow:
-    name: Upload IPA to TestFlight
+    name: Build and upload signed IPA to TestFlight
     instance_type: mac_mini_m2
-    max_build_duration: 20
+    max_build_duration: 30
     environment:
       vars:
         ASC_ISSUER_ID: "18e19531-f1a6-4489-93ec-016e4260b4fd"
         ASC_KEY_ID: "9F33Z6XYHY"
+        BUNDLE_ID: "binusman.application"
+        BUILD_NUMBER: "906"
 
     scripts:
-      - name: Upload existing IPA to TestFlight
+      - name: Install dependencies
         script: |
           set -e
-          python3 -m pip install --quiet codemagic-cli-tools
+          npm ci
+          npm run build
+          npx cap sync ios
+
+      - name: Set iOS build number
+        script: |
+          set -e
+          cd ios/App
+          xcrun agvtool new-version -all "$BUILD_NUMBER"
+
+      - name: Fetch App Store signing files
+        script: |
+          set -e
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --issuer-id "$ASC_ISSUER_ID" \
+            --key-id "$ASC_KEY_ID" \
+            --private-key "$(cat AuthKey_9F33Z6XYHY.p8)"
+
+      - name: Configure signing
+        script: |
+          set -e
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Build signed IPA
+        script: |
+          set -e
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App \
+            --config Release \
+            --export-options-plist ios/ExportOptions.plist
+
+      - name: Upload generated IPA to TestFlight
+        script: |
+          set -e
           app-store-connect publish \
             --issuer-id "$ASC_ISSUER_ID" \
             --key-id "$ASC_KEY_ID" \
             --private-key "$(cat AuthKey_9F33Z6XYHY.p8)" \
-            --path "App (17).ipa"
+            --path "$(find build -type f -name '*.ipa' -print -quit)"

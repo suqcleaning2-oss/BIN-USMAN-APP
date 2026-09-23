@@ -100,7 +100,7 @@ export const universalSignInWithProvider = async (provider: FirebaseAuthProvider
   if (native) {
     const isGoogleProvider = provider.providerId === 'google.com';
     if (!isGoogleProvider) {
-      const result = await FirebaseAuthentication.signInWithApple({ skipNativeAuth: false });
+      const result = await FirebaseAuthentication.signInWithApple({ skipNativeAuth: true });
       const credential = result.credential;
       if (credential?.idToken) {
         const firebaseCredential = new OAuthProvider('apple.com').credential({
