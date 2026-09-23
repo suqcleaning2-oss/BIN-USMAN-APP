@@ -34,15 +34,36 @@ workflows:
         script: |
           set -e
           keychain initialize
+          APP_STORE_PRIVATE_KEY="@file:$(pwd)/AuthKey_9F33Z6XYHY.p8"
+          BUNDLE_ID_RESOURCE_ID=$(app-store-connect bundle-ids list \
+            --bundle-id-identifier "$BUNDLE_ID" \
+            --strict-match-identifier \
+            --issuer-id "$ASC_ISSUER_ID" \
+            --key-id "$ASC_KEY_ID" \
+            --private-key "$APP_STORE_PRIVATE_KEY" \
+            --json | python3 -c 'import json, sys; data=json.load(sys.stdin); items=data.get("data", data) if isinstance(data, dict) else data; print(items[0]["id"])')
+          CAPABILITIES=$(app-store-connect bundle-ids capabilities "$BUNDLE_ID_RESOURCE_ID" \
+            --issuer-id "$ASC_ISSUER_ID" \
+            --key-id "$ASC_KEY_ID" \
+            --private-key "$APP_STORE_PRIVATE_KEY" \
+            --json)
+          if ! printf '%s' "$CAPABILITIES" | grep -q 'APPLE_ID_AUTH'; then
+            app-store-connect bundle-ids enable-capabilities "$BUNDLE_ID_RESOURCE_ID" \
+              --capability "Sign In with Apple" \
+              --issuer-id "$ASC_ISSUER_ID" \
+              --key-id "$ASC_KEY_ID" \
+              --private-key "$APP_STORE_PRIVATE_KEY"
+          fi
           CERTIFICATE_KEY_PATH="$HOME/codemagic-distribution.key"
           openssl genrsa -out "$CERTIFICATE_KEY_PATH" 2048
           chmod 600 "$CERTIFICATE_KEY_PATH"
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
+            --delete-stale-profiles \
             --issuer-id "$ASC_ISSUER_ID" \
             --key-id "$ASC_KEY_ID" \
-            --private-key "@file:$(pwd)/AuthKey_9F33Z6XYHY.p8" \
+            --private-key "$APP_STORE_PRIVATE_KEY" \
             --certificate-key "@file:$CERTIFICATE_KEY_PATH"
           keychain add-certificates
           xcode-project use-profiles
