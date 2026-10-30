@@ -347,9 +347,7 @@ export default function Login() {
             className="w-full flex items-center justify-center gap-2 bg-black hover:bg-neutral-900 active:bg-neutral-800 text-white py-4 rounded-2xl font-semibold transition-all shadow-md group cursor-pointer"
             style={{ fontFamily: '"SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif' }}
           >
-            <svg width="17" height="20" viewBox="0 0 17 20" fill="white" aria-hidden="true">
-              <path d="M8.5 0C8.5 0 10.5 1.1 10.5 3C10.5 5.1 8.3 6.5 8.3 6.5S6.1 5.1 6.1 3C6.1 1.1 8.5 0 8.5 0ZM12.8 7C13.7 7 15.5 7.9 16 9.3C15 10.5 13.5 11.1 12.2 11C11 10.9 9.8 10.2 9 10.2C8.1 10.2 6.9 11 5.7 11C3.2 11 0.8 8.9 0.8 7C0.8 7 3.5 6.1 5.5 7.4C6.3 6.8 7.7 6.4 8.8 6.4C9.6 6.4 11.6 6.6 12.8 7Z M8.6 20C6.9 20 5.3 19.1 4.2 17.8C2.1 15.2 0.5 11.2 2.8 7.2C4 5.1 6.2 3.8 8.5 3.9C10 3.9 11.1 4.8 12.1 4.9C13.8 4.8 15.2 3.9 16 3.4C14.5 1.6 12.1 0.4 9.5 0.6C6.4 0.9 4 3.2 3.5 6.2C2.8 10.2 5.2 14.5 7.2 17C8.2 18.3 9.4 19.9 11.2 19.8C12.7 19.8 13.3 18.9 15.1 18.9C16.9 18.9 17.5 19.8 18.5 20.5C17.5 21.9 15.7 23.8 13.5 23.8C11.7 23.8 11 22.8 8.6 22.8V20Z" />
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="24" viewBox="0 0 384 512" fill="white"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.6 84.2-86.2 97.2-122.5-18.7-8.2-31.5-24.5-32.1-44.6zM256.3 15.5c7.2-9 14.3-21.7 12.7-34.9-19.7 1-43.4 13.5-57.3 29.5-13.3 14.6-24.4 37.5-21.1 58.3 23 .8 46.2-11.7 60.7-29.9z"/></svg>
             <span className="text-[11px] font-semibold">Sign in with Apple</span>
           </button>
 
