@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { User, Mail, Lock, ArrowRight, Eye, EyeOff, Phone, Check, X } from 'lucide-react';
 import { getHighResGooglePhoto } from '../lib/avatar-utils';
 
+const appleSignInLogo = new URL('../assets/images/apple-sign-in-logo.png', import.meta.url).href;
+
 const PASSWORD_REQUIREMENTS = [
   { id: 'length', label: 'At least 8 characters', test: (pw: string) => pw.length >= 8 },
   { id: 'uppercase', label: 'One uppercase letter (A-Z)', test: (pw: string) => /[A-Z]/.test(pw) },
@@ -147,7 +149,7 @@ export default function Register() {
             onClick={handleAppleSignIn}
             className="w-full flex items-center justify-center gap-3 bg-black hover:bg-neutral-900 active:bg-neutral-800 text-white pt-5 pb-4 overflow-visible rounded-2xl font-bold transition-all shadow-md group cursor-pointer"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -24 384 512" width="18" height="20" fill="white" style={{ display: 'block', overflow: 'visible', marginBottom: '2px' }}><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.6 84.2-86.2 97.2-122.5-18.7-8.2-31.5-24.5-32.1-44.6zM256.3 15.5c7.2-9 14.3-21.7 12.7-34.9-19.7 1-43.4 13.5-57.3 29.5-13.3 14.6-24.4 37.5-21.1 58.3 23 .8 46.2-11.7 60.7-29.9z"/></svg>
+            <img src={appleSignInLogo} alt="" aria-hidden="true" className="w-7 h-[31px] object-contain" style={{ mixBlendMode: 'screen' }} />
             <span className="text-[11px] font-black uppercase tracking-widest">Continue with Apple</span>
           </button>
 
