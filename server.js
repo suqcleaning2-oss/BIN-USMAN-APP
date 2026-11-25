@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -18,11 +17,26 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // Check of production vs development mode
-  const isProduction = process.env.NODE_ENV === "production";
+  app.use("/api", (req, res) => {
+    res.status(404).json({ error: "API route not found" });
+  });
+
+  const localDistPath = path.resolve(__dirname, "dist");
+  const cwdDistPath = path.resolve(process.cwd(), "dist");
+  const distPath =
+    fs.existsSync(localDistPath) || !fs.existsSync(cwdDistPath)
+      ? localDistPath
+      : cwdDistPath;
+  const indexHtmlPath = path.join(distPath, "index.html");
+  const hasDistBuild = fs.existsSync(indexHtmlPath);
+
+  const isProduction =
+    process.env.NODE_ENV === "production" ||
+    (process.env.NODE_ENV !== "development" && hasDistBuild);
 
   if (!isProduction) {
     console.log("Starting server in development mode with Vite middleware...");
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -30,10 +44,12 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     console.log("Starting server in production mode serving static assets...");
-    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    app.use("/assets", (req, res) => {
+      res.status(404).send("Asset not found");
+    });
+    app.get(/.*/, (req, res) => {
+      res.sendFile(indexHtmlPath, (err) => {
         if (err) {
           console.error("Error sending index.html:", err);
           if (!res.headersSent) {
