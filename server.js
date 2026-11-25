@@ -60,9 +60,18 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const onListen = () => {
     console.log(`Server running on port ${PORT}`);
-  });
+  };
+
+  if (typeof PORT === "string" && isNaN(Number(PORT))) {
+    app.listen(PORT, onListen);
+  } else {
+    app.listen(Number(PORT), "0.0.0.0", onListen);
+  }
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
